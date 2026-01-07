@@ -213,7 +213,7 @@ class PPOTrainer:
             self.learner.update()
 
             # Evaluate model after training iteration
-            training_data["rewards_per_iteration"].append(self.evaluate_model(5))
+            training_data["rewards_per_iteration"].append(self.evaluate_model())
 
             # Store model if we get a new best reward
             if (
@@ -269,7 +269,7 @@ class PPOTrainer:
         state = env.reset()
 
         cum_rewards = torch.zeros(evaluations, dtype=torch.float32, device=self.device)
-
+        step = 0
         while not torch.all(done_mask == 0):
 
             b_action = self.learner.deterministic_action(
@@ -302,6 +302,8 @@ class PPOTrainer:
             done_indices = torch.nonzero(done).flatten().tolist()
 
             done_mask[done_indices] = 0
+
+            step += 1
 
         self.learner.policy.train()
 

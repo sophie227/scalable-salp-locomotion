@@ -168,6 +168,10 @@ class SalpNavigateDomain(BaseScenario):
 
         world.zero_grad()
 
+        # Step counter
+        self.max_steps = 512
+        self.steps = torch.zeros((batch_dim), device=device, dtype=torch.float32)
+
         return world
 
     def reset_world_at(self, env_index: int = None):
@@ -188,6 +192,11 @@ class SalpNavigateDomain(BaseScenario):
         target_rotation_angle = random.uniform(0, 2 * math.pi)
 
         if env_index is None:
+            # Reset steps for all envs
+            self.steps = torch.zeros(
+                (self.world.batch_dim), device=self.device, dtype=torch.float32
+            )
+
             # Create new agent and target chains
             self.agent_chains = [
                 self.create_agent_chain(
@@ -259,6 +268,9 @@ class SalpNavigateDomain(BaseScenario):
             self.distance_shaping = dist_rew * self.distance_shaping_factor
 
         else:
+            # Reset steps
+            self.steps[env_index] = 0
+
             self.agent_chains[env_index] = self.create_agent_chain(
                 offset=agent_offset,
                 scale=agent_scale,
@@ -753,11 +765,18 @@ class SalpNavigateDomain(BaseScenario):
         return self.agent_representation(agent, self.state_representation)
 
     def done(self):
+        # Update step count
+        self.steps += 1
+
         target_reached = self.raw_frech_rew > self.frechet_thresh
+
         out_of_bounds = self.is_out_of_bounds(
             self.world.x_semidim, self.world.y_semidim
         )
-        return torch.logical_or(target_reached, out_of_bounds)
+
+        timeout = self.steps >= self.max_steps
+
+        return target_reached | out_of_bounds | timeout
 
     def info(self, agent: Agent) -> Dict[str, Tensor]:
         chain_pos = self.get_agent_chain_position()
