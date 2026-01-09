@@ -226,7 +226,7 @@ class PPOTrainer:
                 ]
 
             # Store full checkpoint
-            if global_step - checkpoint_step >= 1000:
+            if global_step - checkpoint_step >= 10000:
 
                 # Save model
                 self.learner.save(self.dirs["models"] / "checkpoint")
@@ -245,9 +245,9 @@ class PPOTrainer:
                     print("Finished training")
                     break
 
-            print(
-                f"Step: {global_step}, Episodes: {total_episodes}, Best Reward: {training_data["best_reward"]}, Latest Eval: {training_data["rewards_per_iteration"][-1]}, Minutes {'{:.2f}'.format((sum(training_data['timestamps'])) / 60)}"
-            )
+                print(
+                    f"Step: {global_step}, Episodes: {total_episodes}, Best Reward: {training_data["best_reward"]}, Latest Eval: {training_data["rewards_per_iteration"][-1]}, Minutes {'{:.2f}'.format((sum(training_data['timestamps'])) / 60)}"
+                )
 
     def evaluate_model(self, evaluations=5):
         # Set policy to evaluation mode
