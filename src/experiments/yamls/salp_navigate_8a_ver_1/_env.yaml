@@ -1,0 +1,4 @@
+rotating_salps: False
+state_representation: ver_1
+n_envs: 10
+n_agents: 8
