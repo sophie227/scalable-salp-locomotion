@@ -55,7 +55,7 @@ class SalpNavigateDomain(BaseScenario):
         self.frechet_thresh = 0.95
         self.min_n_agents = 8
 
-        self.viewer_zoom = kwargs.pop("viewer_zoom", 5.0)
+        self.viewer_zoom = kwargs.pop("viewer_zoom", 2.0)
 
         # Agents
         self.n_agents = kwargs.pop("n_agents", self.min_n_agents)
@@ -565,7 +565,7 @@ class SalpNavigateDomain(BaseScenario):
             (self.world.batch_dim, encoding_len),
             dtype=torch.float32,
             device=self.device,
-        ) + binary_encode(idx, encoding_len)
+        ) + binary_encode(idx, encoding_len, self.device)
 
         # Get neighbor forces
         neighbor_forces = torch.zeros(
