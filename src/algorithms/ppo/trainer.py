@@ -247,7 +247,7 @@ class PPOTrainer:
                     break
 
                 print(
-                    f"Step: {global_step}, Episodes: {total_episodes}, Best Reward: {training_data["best_reward"]}, Latest Eval: {training_data["rewards_per_iteration"][-1]}, Minutes {'{:.2f}'.format((sum(training_data['timestamps'])) / 60)}"
+                    f"Step: {global_step}, Episodes: {total_episodes}, Best Reward: {training_data['best_reward']}, Latest Eval: {training_data['rewards_per_iteration'][-1]}, Minutes {'{:.2f}'.format((sum(training_data['timestamps'])) / 60)}"
                 )
 
     def evaluate_model(self, evaluations=5):

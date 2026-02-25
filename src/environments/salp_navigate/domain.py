@@ -11,6 +11,7 @@ from vmas.simulator.core import Agent, Landmark, Box, Sphere, World
 from vmas.simulator.scenario import BaseScenario
 from vmas.simulator.utils import ScenarioUtils
 import pickle
+from pathlib import Path
 
 from environments.salp_navigate.dynamics import SalpDynamics
 from environments.salp_navigate.utils import (
@@ -419,7 +420,7 @@ class SalpNavigateDomain(BaseScenario):
 
     def create_target_chain(self, inner_r, outer_r, rotation_angle: float = 0.0):
         
-        file_path = "/home/sophie/scalable-salp-locomotion/src/target_chains.pkl"
+        file_path = Path(__file__).resolve().parent.parent.parent/"target_chains.pkl"
         if file_path is not None:
             with open(file_path, "rb") as f:
                 chain_targets = pickle.load(f)
