@@ -10,6 +10,7 @@ from vmas.simulator.joints import Joint
 from vmas.simulator.core import Agent, Landmark, Box, Sphere, World
 from vmas.simulator.scenario import BaseScenario
 from vmas.simulator.utils import ScenarioUtils
+import pickle
 
 from environments.salp_navigate.dynamics import SalpDynamics
 from environments.salp_navigate.utils import (
@@ -389,29 +390,44 @@ class SalpNavigateDomain(BaseScenario):
         ).to(self.device)
         return chain
 
+    # def create_target_chain(self, inner_r, outer_r, rotation_angle: float = 0.0):
+    #     x_coord, y_coord = generate_random_coordinate_within_annulus(
+    #         inner_r,
+    #         outer_r,
+    #     )
+
+
+    #     n_bends = random.choice([0, 1])
+    #     radius = random.uniform(0.05, 0.3)
+    #     radius_scaling = (
+    #         self.n_agents // 3
+    #     )  # 3 because it's the minimum amount of points for a curve
+
+    #     chain = rotate_points(
+    #         points=generate_bending_curve(
+    #             x0=x_coord,
+    #             y0=y_coord,
+    #             n_points=self.n_agents,
+    #             max_dist=self.agent_joint_length,
+    #             radius=radius * radius_scaling,
+    #             n_bends=n_bends,
+    #         ),
+    #         angle_rad=rotation_angle,
+    #     ).to(self.device)
+
+    #     return chain
+
     def create_target_chain(self, inner_r, outer_r, rotation_angle: float = 0.0):
-        x_coord, y_coord = generate_random_coordinate_within_annulus(
-            inner_r,
-            outer_r,
-        )
+        
+        file_path = "/home/sophie/scalable-salp-locomotion/src/target_chains.pkl"
+        if file_path is not None:
+            with open(file_path, "rb") as f:
+                chain_targets = pickle.load(f)
+        chain_dict = {f"chain_{i}": chain for i, chain in enumerate(chain_targets)}
 
-        n_bends = random.choice([0, 1])
-        radius = random.uniform(0.05, 0.3)
-        radius_scaling = (
-            self.n_agents // 3
-        )  # 3 because it's the minimum amount of points for a curve
+        value = random.choice(list(chain_dict.keys()))
 
-        chain = rotate_points(
-            points=generate_bending_curve(
-                x0=x_coord,
-                y0=y_coord,
-                n_points=self.n_agents,
-                max_dist=self.agent_joint_length,
-                radius=radius * radius_scaling,
-                n_bends=n_bends,
-            ),
-            angle_rad=rotation_angle,
-        ).to(self.device)
+        chain = chain_dict[value]
 
         return chain
 
