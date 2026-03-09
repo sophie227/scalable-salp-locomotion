@@ -24,7 +24,7 @@ target_outer_radius = (
 
 # Generate 3 target chains
 target_chains = []
-for i in range(3):
+for i in range(10):
     chain = domain.create_target_chain(
         target_inner_radius,
         target_outer_radius,

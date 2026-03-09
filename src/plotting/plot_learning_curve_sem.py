@@ -33,6 +33,7 @@ for batch in config["batches"]:
         for trial in config["trials"]:
             checkpoint_path = Path(
                 f"{config['base_path']}/{batch}/{experiment}/{trial}/logs/train.dat"
+                
             )
 
             if checkpoint_path.is_file():

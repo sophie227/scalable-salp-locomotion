@@ -51,7 +51,7 @@ if __name__ == "__main__":
         help="Run validation script",
     )
 
-    parser.add_argument("--trial_id", default="debug", help="Sets trial ID", type=str)
+    parser.add_argument("--trial_id", default="1", help="Sets trial ID", type=str)
 
     args = vars(parser.parse_args())
 

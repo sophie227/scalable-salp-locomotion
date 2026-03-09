@@ -11,6 +11,7 @@ from vmas.simulator.core import Agent, Landmark, Box, Sphere, World
 from vmas.simulator.scenario import BaseScenario
 from vmas.simulator.utils import ScenarioUtils
 import pickle
+from pathlib import Path
 
 from environments.salp_navigate.dynamics import SalpDynamics
 from environments.salp_navigate.utils import (
@@ -93,6 +94,9 @@ class SalpNavigateDomain(BaseScenario):
         self.curvature_shaping_factor = 1.0
         self.distance_shaping_factor = 1.0
 
+        self.collision_reward_value = kwargs.pop("collision_reward", -1)
+        self.min_collision_distance = .005
+
         ScenarioUtils.check_kwargs_consumed(kwargs)
 
         self.device = device
@@ -152,6 +156,22 @@ class SalpNavigateDomain(BaseScenario):
             world.add_joint(joint)
             self.joints.append(joint)
 
+        # Add wall obstacle
+        self.walls = []
+        self.wall = Landmark(
+            name="wall",
+            movable=False,
+            shape=Box(length=0.1, width=1.0),
+            color=(0.5, 0.5, 0.5),
+            collide=True,
+        )
+        world.add_landmark(self.wall)
+        self.walls.append(self.wall)
+
+        print("landmarks:", len(world.landmarks))
+        print("targets:", len(self.targets))
+        print("walls:", len(self.walls))
+
         # Initialize reward tensors
         self.reached_goal_bonus = 1
         self.global_rew = torch.zeros(batch_dim, device=device, dtype=torch.float32)
@@ -159,6 +179,7 @@ class SalpNavigateDomain(BaseScenario):
         self.frechet_rew = self.global_rew.clone()
         self.curvature_rew = self.global_rew.clone()
         self.distance_rew = self.global_rew.clone()
+        self.collision_rew = self.global_rew.clone()
 
         # Initialize memory
         self.internal_angles_prev = torch.zeros(
@@ -251,6 +272,10 @@ class SalpNavigateDomain(BaseScenario):
                 pos = target_chain_tensor[:, i, :]
                 target.set_pos(pos, batch_index=None)
 
+            # Set wall position
+            wall_pos = torch.tensor([1.0, 1.0], device=self.device)
+            self.wall.set_pos(wall_pos, batch_index=None)
+
             for i, joint in enumerate(self.joints):
                 half_distance = (
                     self.agents[i].state.pos - self.agents[i + 1].state.pos
@@ -277,6 +302,7 @@ class SalpNavigateDomain(BaseScenario):
                 a_pos, t_pos, self.agent_joint_length
             )
             dist_rew = calculate_distance_reward(a_pos, t_pos)
+            # print(a_pos.shape, t_pos.shape)
 
             self.frechet_shaping = f_dist * self.frechet_shaping_factor
             self.centroid_shaping = c_dist * self.centroid_shaping_factor
@@ -308,6 +334,10 @@ class SalpNavigateDomain(BaseScenario):
             for n_target, target in enumerate(self.targets):
                 pos = self.target_chains[env_index][n_target]
                 target.set_pos(pos, batch_index=env_index)
+
+
+            # Set wall position
+            # self.wall.set_pos(torch.tensor([0.0, 0.0], device=self.device), batch_index=env_index)
 
             for i, joint in enumerate(self.joints):
                 half_distance = (
@@ -389,6 +419,18 @@ class SalpNavigateDomain(BaseScenario):
             angle_rad=rotation_angle,
         ).to(self.device)
         return chain
+    
+
+    def compute_collision_reward(self, agent_pos = None):
+    #   for a in self.world.agents + ([self.mass] if self.asym_package else []):
+        self.collision_rew[:] = 0
+        
+        for wall in self.walls:
+            self.collision_rew[
+                self.world.get_distance(Agent, wall) <= self.min_collision_distance
+                ] += self.collision_reward_value
+
+        return self.collision_rew
 
     # def create_target_chain(self, inner_r, outer_r, rotation_angle: float = 0.0):
     #     x_coord, y_coord = generate_random_coordinate_within_annulus(
@@ -418,8 +460,8 @@ class SalpNavigateDomain(BaseScenario):
     #     return chain
 
     def create_target_chain(self, inner_r, outer_r, rotation_angle: float = 0.0):
-        
-        file_path = "/home/sophie/scalable-salp-locomotion/src/target_chains.pkl"
+       
+        file_path = Path(__file__).resolve().parent.parent.parent/"target_chains.pkl"
         if file_path is not None:
             with open(file_path, "rb") as f:
                 chain_targets = pickle.load(f)
@@ -478,7 +520,8 @@ class SalpNavigateDomain(BaseScenario):
         agent.state.force = torch.stack((x, y), dim=-1)
 
     def get_targets(self):
-        return [landmark for landmark in self.world.landmarks if not landmark.is_joint]
+         
+        return self.targets
 
     def get_agent_chain_position(self):
         agent_pos = [a.state.pos for a in self.world.agents]
@@ -502,6 +545,8 @@ class SalpNavigateDomain(BaseScenario):
             # Get chain positions
             agent_pos = self.get_agent_chain_position()
             target_pos = self.get_target_chain_position()
+            collision_rew = self.compute_collision_reward(agent_pos)
+            print(f"Collision reward: {collision_rew}")
 
             # Distance reward
             self.raw_dist_rew = calculate_distance_reward(agent_pos, target_pos)
@@ -544,7 +589,7 @@ class SalpNavigateDomain(BaseScenario):
             goal_reached_rew += self.reached_goal_bonus * goal_reached_mask.int()
 
             # Mix all rewards
-            self.global_rew = self.distance_rew + goal_reached_rew
+            self.global_rew = self.distance_rew + goal_reached_rew + collision_rew
 
         return self.global_rew
 
@@ -656,6 +701,8 @@ class SalpNavigateDomain(BaseScenario):
                         a_pos_rel_2_t_centroid,
                         a_vel_rel_2_centroid,
                         a_pos_2_t_pos_err,
+                        
+
                     ],
                     dim=-1,
                 ).float()

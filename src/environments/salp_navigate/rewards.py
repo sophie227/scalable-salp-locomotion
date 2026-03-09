@@ -42,7 +42,14 @@ def calculate_curvature_reward(
 
     k = menger_curvature(a_pos, joint_length)
     k_star = menger_curvature(t_pos, joint_length)
+    # print(k.shape, k_star.shape)
+    diff = k - k_star
+    print(diff, diff.shape)
 
     rew = -torch.sum(torch.abs(k - k_star), dim=-1)
+    # print(rew.shape)
+    # print(rew)
 
     return rew
+
+

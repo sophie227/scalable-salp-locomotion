@@ -2,8 +2,10 @@
 moving_avg_window_size: 200
 datapoints: [30000, 30000]
 base_path: "/home/USER/scalable-salp-locomotion/src/experiments/results"
+# base_path: "/home/sophie/scalable-salp-locomotion/src/experiments/results"
 
-batches: ["salp_navigate_8a", "salp_navigate_16a"]
+batches: ["salp_navigate_5a"]
+# batches: ["salp_navigate_8a", "salp_navigate_16a"]
 # batches: ["salp_navigate_8a_hpc", "salp_navigate_16a"]
 # batches: ["salp_navigate_8a_ver_0", "salp_navigate_8a_ver_1"]
 # batches: ["salp_navigate_8a_state_test", "salp_navigate_16a"]

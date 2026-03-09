@@ -753,6 +753,7 @@ class SalpPassageDomain(BaseScenario):
                 self.world.batch_dim, device=self.device, dtype=torch.float32
             )
             collision_penalty += self.collision_penalty * has_collided
+            
 
             # Mix all rewards
             self.global_rew = (
