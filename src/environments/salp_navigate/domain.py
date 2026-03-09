@@ -424,11 +424,11 @@ class SalpNavigateDomain(BaseScenario):
     def compute_collision_reward(self, agent_pos = None):
     #   for a in self.world.agents + ([self.mass] if self.asym_package else []):
         self.collision_rew[:] = 0
-        
-        for wall in self.walls:
-            self.collision_rew[
-                self.world.get_distance(Agent, wall) <= self.min_collision_distance
-                ] += self.collision_reward_value
+        for agent in self.world.agents:
+            for wall in self.walls:
+                self.collision_rew[
+                    self.world.get_distance(agent, wall) <= self.min_collision_distance
+                    ] += self.collision_reward_value
 
         return self.collision_rew
 
