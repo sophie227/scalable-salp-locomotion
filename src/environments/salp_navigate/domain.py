@@ -157,16 +157,16 @@ class SalpNavigateDomain(BaseScenario):
             self.joints.append(joint)
 
         # # Add wall obstacle
-        # self.walls = []
-        # self.wall = Landmark(
-        #     name="wall",
-        #     movable=False,
-        #     shape=Box(length=0.1, width=1.0),
-        #     color=(0.5, 0.5, 0.5),
-        #     collide=True,
-        # )
-        # world.add_landmark(self.wall)
-        # self.walls.append(self.wall)
+        self.walls = []
+        self.wall = Landmark(
+            name="wall",
+            movable=False,
+            shape=Box(length=0.1, width=1.0),
+            color=(0.5, 0.5, 0.5),
+            collide=True,
+        )
+        world.add_landmark(self.wall)
+        self.walls.append(self.wall)
 
         # print("landmarks:", len(world.landmarks))
         # print("targets:", len(self.targets))
@@ -273,8 +273,8 @@ class SalpNavigateDomain(BaseScenario):
                 target.set_pos(pos, batch_index=None)
 
             # Set wall position
-            # wall_pos = torch.tensor([1.0, 1.0], device=self.device)
-            # self.wall.set_pos(wall_pos, batch_index=None)
+            wall_pos = torch.tensor([1.0, 1.0], device=self.device)
+            self.wall.set_pos(wall_pos, batch_index=None)
 
             for i, joint in enumerate(self.joints):
                 half_distance = (
@@ -421,16 +421,16 @@ class SalpNavigateDomain(BaseScenario):
         return chain
     
 
-    # def compute_collision_reward(self, agent_pos = None):
-    # #   for a in self.world.agents + ([self.mass] if self.asym_package else []):
-    #     self.collision_rew[:] = 0
-    #     for agent in self.world.agents:
-    #         for wall in self.walls:
-    #             self.collision_rew[
-    #                 self.world.get_distance(agent, wall) <= self.min_collision_distance
-    #                 ] += self.collision_reward_value
+    def compute_collision_reward(self, agent_pos = None):
+    #   for a in self.world.agents + ([self.mass] if self.asym_package else []):
+        self.collision_rew[:] = 0
+        for agent in self.world.agents:
+            for wall in self.walls:
+                self.collision_rew[
+                    self.world.get_distance(agent, wall) <= self.min_collision_distance
+                    ] += self.collision_reward_value
 
-    #     return self.collision_rew
+        return self.collision_rew
 
     # def create_target_chain(self, inner_r, outer_r, rotation_angle: float = 0.0):
     #     x_coord, y_coord = generate_random_coordinate_within_annulus(
@@ -545,7 +545,7 @@ class SalpNavigateDomain(BaseScenario):
             # Get chain positions
             agent_pos = self.get_agent_chain_position()
             target_pos = self.get_target_chain_position()
-            # collision_rew = self.compute_collision_reward(agent_pos)
+            collision_rew = self.compute_collision_reward(agent_pos)
             # print(f"Collision reward: {collision_rew}")
 
             # Distance reward
@@ -589,7 +589,7 @@ class SalpNavigateDomain(BaseScenario):
             goal_reached_rew += self.reached_goal_bonus * goal_reached_mask.int()
 
             # Mix all rewards
-            self.global_rew = self.distance_rew + goal_reached_rew #+ collision_rew
+            self.global_rew = self.distance_rew + goal_reached_rew + collision_rew
 
         return self.global_rew
 
