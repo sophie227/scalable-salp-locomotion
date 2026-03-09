@@ -742,7 +742,7 @@ def generate_random_coordinate_within_annulus(
     inner_radius: float,
     outer_radius: float,
     center_x: float = 0.0,
-    center_y: float = 0.0,
+    center_y: float = 1.0,
 ):
     """
     Generate a random coordinate within the area between two concentric circles (annulus).

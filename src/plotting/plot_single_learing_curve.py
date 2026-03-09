@@ -14,6 +14,7 @@ import pickle
 from pathlib import Path
 import numpy as np
 import matplotlib.pyplot as plt
+import pandas as pd
 
 
 def moving_average(x, w):
@@ -37,6 +38,8 @@ def load_pkl_data(pkl_path, key=None):
     """
     with open(pkl_path, 'rb') as f:
         data = pickle.load(f)
+    
+   
 
     # If data is already a dict, extract the appropriate key
     if isinstance(data, dict):
@@ -58,6 +61,7 @@ def load_pkl_data(pkl_path, key=None):
                 return np.array(v), k
 
         raise ValueError(f"Could not find suitable data in pkl file. Keys: {list(data.keys())}")
+    print(list(data.keys()))
 
     # If data is already an array, just return it
     return np.array(data), "data"

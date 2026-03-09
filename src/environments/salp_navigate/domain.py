@@ -273,7 +273,7 @@ class SalpNavigateDomain(BaseScenario):
                 target.set_pos(pos, batch_index=None)
 
             # Set wall position
-            # wall_pos = torch.tensor([1.0, 1.0], device=self.device)
+            # wall_pos = torch.tensor([-2.0, 1.0], device=self.device)
             # self.wall.set_pos(wall_pos, batch_index=None)
 
             for i, joint in enumerate(self.joints):
@@ -467,9 +467,12 @@ class SalpNavigateDomain(BaseScenario):
                 chain_targets = pickle.load(f)
         chain_dict = {f"chain_{i}": chain for i, chain in enumerate(chain_targets)}
 
-        value = random.choice(list(chain_dict.keys()))
+        # value = random.choice(list(chain_dict.keys()))
+        value = list(chain_dict.keys())[0]
+        # print(f"Selected chain: {value}")
 
         chain = chain_dict[value]
+        print(f"Selected chain: {value}, chain: {chain}")
 
         return chain
 

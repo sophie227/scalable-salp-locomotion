@@ -250,6 +250,11 @@ class PPOTrainer:
                     f"Step: {global_step}, Episodes: {total_episodes}, Best Reward: {training_data['best_reward']}, Latest Eval: {training_data['rewards_per_iteration'][-1]}, Minutes {'{:.2f}'.format((sum(training_data['timestamps'])) / 60)}"
                 )
 
+        self.learner.save(self.dirs["models"] / "stage_checkpoint")
+        # Store reward per episode data
+        with open(self.dirs["logs"] / "train.dat", "wb") as f:
+            dill.dump(training_data, f)
+
     def evaluate_model(self, evaluations=5):
         # Set policy to evaluation mode
         self.learner.policy.eval()
