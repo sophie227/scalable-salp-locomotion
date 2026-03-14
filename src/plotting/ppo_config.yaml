@@ -11,9 +11,9 @@ batches: ["salp_navigate_5a"]
 # batches: ["salp_navigate_8a_state_test", "salp_navigate_16a"]
 # batches: ["salp_navigate_8a_ver_1"]
 
-experiments: ["mlp", "gcn"]
+experiments: ["gcn"]
 # experiments: ["mlp", "gcn", "gat", "graph_transformer", "gcn_full", "gat_full", "graph_transformer_full"]
 # experiments: ["gcn", "gat", "graph_transformer", "gcn_full", "gat_full", "graph_transformer_full"]
 
-trials: ["0", "1"]
+trials: ["2"]
 # trials: ["0"]

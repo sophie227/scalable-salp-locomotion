@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from environments.types import EnvironmentParams
 import torch
+import typing
 
 
 @dataclass(frozen=True)
@@ -41,8 +42,18 @@ class GlobalObservation:
 
 @dataclass
 class SalpNavigateEnvironmentParams(EnvironmentParams):
+    # existing options
     state_representation: str = None
     rotating_salps: bool = False
+
+    # new fields for curriculum / obstacle configuration
+    wall_enabled: bool = False  # whether to include a static wall obstacle
+    wall_length: float = 0.1
+    wall_width: float = 1.0
+    # if provided the wall will be placed at this (x, y) coordinate,
+    # otherwise default coordinates are used inside the scenario.
+    wall_position: typing.Optional[list] = None
+    # future: use wall_color or other parameters as needed
 
 
 class Chain:

@@ -42,20 +42,16 @@ class PPOTrainer:
 
         self.checkpoint = checkpoint
 
-    def train(
-        self,
-    ):
+        # Initialize learner early so we can load checkpoints
+        self._init_learner()
 
-        # Set seeds
-        random_seed = self.params.random_seeds[0]
-
-        if self.trial_id.isdigit():
-            random_seed = self.params.random_seeds[int(self.trial_id)]
-
-        np.random.seed(random_seed)
-        random.seed(random_seed)
-        torch.manual_seed(random_seed)
-        torch.cuda.manual_seed(random_seed)
+    def _init_learner(self):
+        # Set a temporary seed for env creation
+        temp_seed = 0
+        np.random.seed(temp_seed)
+        random.seed(temp_seed)
+        torch.manual_seed(temp_seed)
+        torch.cuda.manual_seed(temp_seed)
 
         env = create_env(
             self.dirs["batch"],
@@ -63,7 +59,7 @@ class PPOTrainer:
             n_agents=self.n_agents,
             device=self.device,
             env_name=self.env_name,
-            seed=random_seed,
+            seed=temp_seed,
         )
 
         # Set state and action dimensions
@@ -86,6 +82,30 @@ class PPOTrainer:
             d_state,
             self.d_action,
             self.checkpoint,
+        )
+
+    def train(
+        self,
+    ):
+
+        # Set proper seeds
+        random_seed = self.params.random_seeds[0]
+
+        if self.trial_id.isdigit():
+            random_seed = self.params.random_seeds[int(self.trial_id)]
+
+        np.random.seed(random_seed)
+        random.seed(random_seed)
+        torch.manual_seed(random_seed)
+        torch.cuda.manual_seed(random_seed)
+
+        env = create_env(
+            self.dirs["batch"],
+            self.n_envs,
+            n_agents=self.n_agents,
+            device=self.device,
+            env_name=self.env_name,
+            seed=random_seed,
         )
 
         # Create training data logging object

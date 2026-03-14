@@ -12,11 +12,20 @@ def run_curriculum(
     base_env: EnvironmentParams,
     device: str,
     batch_dir: Path,
+    batch_name: str,
+    experiment_name: str,
+    environment: str,
+    algorithm: str,
     trials_dir: Path,
     trial_id: str,
     stages: List[Dict],              # e.g. [{'n_agents':8}, {'n_agents':12}, {'n_agents':16}]
-    initial_checkpoint: Optional[Path] = None,
+    initial_checkpoint: Optional[Path] = '/home/sophie/scalable-salp-locomotion/src/experiments/results/salp_navigate_5a/gcn/2/models/checkpoint',
+    view: bool = False,
+    evaluate: bool = False,
 ):
+
+
+
     """
     Run a sequence of training stages.  At each stage the environment
     configuration is patched with the dict in `stages`, the trainer is
@@ -25,6 +34,8 @@ def run_curriculum(
     The returned Path points to the last best‑model file.
     """
     last_checkpoint = initial_checkpoint
+    print("start")
+    print(f"initial checkpoint: {last_checkpoint}")
 
     for i, patch in enumerate(stages):
         print(f"\n=== curriculum stage {i+1}/{len(stages)}: {patch} ===")
@@ -51,10 +62,17 @@ def run_curriculum(
         if last_checkpoint is not None and last_checkpoint.is_file():
             runner.trainer.learner.load(last_checkpoint)
 
+
         # run one full experiment (honours exp_cfg.params.n_total_steps, etc)
-        runner.train()
+        if view:
+            runner.view()
+        elif evaluate:
+            runner.evaluate()
+        else:
+            runner.train()
 
         # after training save file will be at
-        last_checkpoint = runner.trainer.dirs["models"] / "best_model"
+        last_checkpoint = runner.trainer.dirs["models"] / "best_cirr_model"
+        print(f"Finished stage {i+1}, best model saved to {last_checkpoint}")
 
     return last_checkpoint

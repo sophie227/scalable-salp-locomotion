@@ -156,17 +156,24 @@ class SalpNavigateDomain(BaseScenario):
             world.add_joint(joint)
             self.joints.append(joint)
 
-        # Add wall obstacle
-        # self.walls = []
-        # self.wall = Landmark(
-        #     name="wall",
-        #     movable=False,
-        #     shape=Box(length=0.1, width=1.0),
-        #     color=(0.5, 0.5, 0.5),
-        #     collide=True,
-        # )
-        # world.add_landmark(self.wall)
-        # self.walls.append(self.wall)
+        # Optionally add a wall obstacle (controlled by env params)
+        self.wall_enabled = kwargs.pop("wall_enabled", True)
+        if self.wall_enabled:
+            # allow overriding size and position from kwargs/env_config
+            # self.wall_length = kwargs.pop("wall_length", self.wall_length)
+            # self.wall_width = kwargs.pop("wall_width", self.wall_width)
+            self.wall_position = kwargs.pop("wall_position", None)
+
+            self.walls = []
+            self.wall = Landmark(
+                name="wall",
+                movable=False,
+                shape=Box(0.5, 0.1),
+                color=(0.5, 0.5, 0.5),
+                collide=True,
+            )
+            world.add_landmark(self.wall)
+            self.walls.append(self.wall)
 
         # print("landmarks:", len(world.landmarks))
         # print("targets:", len(self.targets))
@@ -272,9 +279,14 @@ class SalpNavigateDomain(BaseScenario):
                 pos = target_chain_tensor[:, i, :]
                 target.set_pos(pos, batch_index=None)
 
-            # Set wall position
-            # wall_pos = torch.tensor([-2.0, 1.0], device=self.device)
-            # self.wall.set_pos(wall_pos, batch_index=None)
+            # Set wall position if we have one configured
+            if self.wall_enabled:
+                if self.wall_position is not None:
+                    wall_pos = torch.tensor(self.wall_position, device=self.device)
+                else:
+                    # default hard-coded coordinate; can also randomize later
+                    wall_pos = torch.tensor([0.0, 0.0], device=self.device)
+                self.wall.set_pos(wall_pos, batch_index=None)
 
             for i, joint in enumerate(self.joints):
                 half_distance = (
@@ -472,7 +484,7 @@ class SalpNavigateDomain(BaseScenario):
         # print(f"Selected chain: {value}")
 
         chain = chain_dict[value]
-        print(f"Selected chain: {value}, chain: {chain}")
+        # print(f"Selected chain: {value}, chain: {chain}")
 
         return chain
 
