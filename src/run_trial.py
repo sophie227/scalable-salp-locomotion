@@ -57,7 +57,7 @@ if __name__ == "__main__":
         help="Run validation script",
     )
 
-    parser.add_argument("--trial_id", default="2", help="Sets trial ID", type=str)
+    parser.add_argument("--trial_id", default="3", help="Sets trial ID", type=str)
 
     # curriculum options
     parser.add_argument(
@@ -128,16 +128,16 @@ if __name__ == "__main__":
         if args.get("stages"):
             stages = yaml.safe_load(args.get("stages"))
 
-        initial_ckpt = None
-        if args.get("initial_checkpoint"):
-            initial_ckpt = Path(args.get("initial_checkpoint"))
-        else:
-            # default to latest checkpoint from previous standard run (if any)
-            default_ckpt_path = (
-                trials_dir / args["trial_id"] / "models" / "checkpoint"
-            )
-            if default_ckpt_path.is_file():
-                initial_ckpt = default_ckpt_path
+        initial_ckpt = '/home/sophie/scalable-salp-locomotion/src/experiments/results/salp_navigate_5a/gcn/3/models/best_model',
+        # if args.get("initial_checkpoint"):
+        #     initial_ckpt = Path(args.get("initial_checkpoint"))
+        # else:
+        #     # default to latest checkpoint from previous standard run (if any)
+        #     default_ckpt_path = (
+        #         trials_dir / args["trial_id"] / "models" / "checkpoint"
+        #     )
+        #     if default_ckpt_path.is_file():
+        #         initial_ckpt = default_ckpt_path
 
         run_curriculum(
             base_env=base_env,

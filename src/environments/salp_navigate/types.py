@@ -52,7 +52,7 @@ class SalpNavigateEnvironmentParams(EnvironmentParams):
     wall_width: float = 1.0
     # if provided the wall will be placed at this (x, y) coordinate,
     # otherwise default coordinates are used inside the scenario.
-    wall_position: typing.Optional[list] = None
+    # wall_position: typing.Optional[list] = None
     # future: use wall_color or other parameters as needed
 
 

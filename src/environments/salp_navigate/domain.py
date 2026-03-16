@@ -162,13 +162,15 @@ class SalpNavigateDomain(BaseScenario):
             # allow overriding size and position from kwargs/env_config
             # self.wall_length = kwargs.pop("wall_length", self.wall_length)
             # self.wall_width = kwargs.pop("wall_width", self.wall_width)
-            self.wall_position = kwargs.pop("wall_position", None)
+            # self.wall_position = kwargs.pop("wall_position", None)
+            self.wall_position = (-.5, 0)  
+            
 
             self.walls = []
             self.wall = Landmark(
                 name="wall",
                 movable=False,
-                shape=Box(0.5, 0.1),
+                shape=Box(1.0, 0.1),
                 color=(0.5, 0.5, 0.5),
                 collide=True,
             )
