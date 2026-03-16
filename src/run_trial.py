@@ -129,15 +129,15 @@ if __name__ == "__main__":
             stages = yaml.safe_load(args.get("stages"))
 
         initial_ckpt = '/home/sophie/scalable-salp-locomotion/src/experiments/results/salp_navigate_5a/gcn/3/models/best_model',
-        # if args.get("initial_checkpoint"):
-        #     initial_ckpt = Path(args.get("initial_checkpoint"))
-        # else:
-        #     # default to latest checkpoint from previous standard run (if any)
-        #     default_ckpt_path = (
-        #         trials_dir / args["trial_id"] / "models" / "checkpoint"
-        #     )
-        #     if default_ckpt_path.is_file():
-        #         initial_ckpt = default_ckpt_path
+        if args.get("initial_checkpoint"):
+            initial_ckpt = Path(args.get("initial_checkpoint"))
+        else:
+            # default to latest checkpoint from previous standard run (if any)
+            default_ckpt_path = (
+                trials_dir / args["trial_id"] / "models" / "checkpoint"
+            )
+            if default_ckpt_path.is_file():
+                initial_ckpt = default_ckpt_path
 
         run_curriculum(
             base_env=base_env,

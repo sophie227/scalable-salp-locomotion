@@ -20,6 +20,7 @@ def run_curriculum(
     trial_id: str,
     stages: List[Dict],              # e.g. [{'n_agents':8}, {'n_agents':12}, {'n_agents':16}]
     initial_checkpoint: Optional[Path] = None,
+    view: bool = False,
     evaluate: bool = False,
 ):
 
