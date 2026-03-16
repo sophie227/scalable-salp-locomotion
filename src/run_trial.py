@@ -128,7 +128,7 @@ if __name__ == "__main__":
         if args.get("stages"):
             stages = yaml.safe_load(args.get("stages"))
 
-        initial_ckpt = '/home/sophie/scalable-salp-locomotion/src/experiments/results/salp_navigate_5a/gcn/3/models/best_model',
+        initial_ckpt = None
         if args.get("initial_checkpoint"):
             initial_ckpt = Path(args.get("initial_checkpoint"))
         else:
