@@ -57,7 +57,7 @@ if __name__ == "__main__":
         help="Run validation script",
     )
 
-    parser.add_argument("--trial_id", default="3", help="Sets trial ID", type=str)
+    parser.add_argument("--trial_id", default="0", help="Sets trial ID", type=str)
 
     # curriculum options
     parser.add_argument(
