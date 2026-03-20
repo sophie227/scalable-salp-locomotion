@@ -15,5 +15,5 @@ experiments: ["gcn"]
 # experiments: ["mlp", "gcn", "gat", "graph_transformer", "gcn_full", "gat_full", "graph_transformer_full"]
 # experiments: ["gcn", "gat", "graph_transformer", "gcn_full", "gat_full", "graph_transformer_full"]
 
-trials: ["2","3", "4"]
+trials: ["0"]
 # trials: ["0"]

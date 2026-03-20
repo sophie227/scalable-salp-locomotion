@@ -19,7 +19,7 @@ def run_curriculum(
     trials_dir: Path,
     trial_id: str,
     stages: List[Dict],              # e.g. [{'n_agents':8}, {'n_agents':12}, {'n_agents':16}]
-    initial_checkpoint: Optional[Path] = None,
+    initial_checkpoint: Optional[Path] = '/home/sophie/scalable-salp-locomotion/src/experiments/results/salp_navigate_5a/gcn/0/models/best_model',
     view: bool = False,
     evaluate: bool = False,
 ):
@@ -72,7 +72,7 @@ def run_curriculum(
             runner.train()
 
         # after training save file will be at
-        last_checkpoint = runner.trainer.dirs["models"] / "best_cirr_model"
+        last_checkpoint = runner.trainer.dirs["models"] / "best_model"
         print(f"Finished stage {i+1}, best model saved to {last_checkpoint}")
 
     return last_checkpoint
