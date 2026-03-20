@@ -1,0 +1,26 @@
+device: cpu
+model: graph_transformer_full
+params:
+  batch_size: 5120
+  ent_coef: 0.001
+  eps_clip: 0.2
+  gamma: 0.99
+  grad_clip: 0.5
+  lmbda: 0.95
+  lr: 5.0e-05
+  n_minibatches: 10
+  n_epochs: 10
+  n_total_steps: 100000000.0
+  random_seeds:
+  - 118
+  - 1234
+  - 8764
+  - 3486
+  - 2487
+  - 5439
+  - 6584
+  - 7894
+  - 523
+  - 69
+  std_coef: 0.0
+  val_coef: 1.0

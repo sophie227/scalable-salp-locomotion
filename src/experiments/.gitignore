@@ -5,3 +5,4 @@ results*
 !check_tensorboard.yaml
 !yamls/salp_navigate_8a/*
 !yamls/salp_navigate_16a/*
+!yamls/salp_navigate_5a_curr/*

@@ -1,0 +1,18 @@
+device: cpu
+model: transformer_encoder
+params:
+  batch_size: 5120
+  ent_coef: 0.001
+  eps_clip: 0.2
+  gamma: 0.99
+  grad_clip: 0.5
+  lmbda: 0.95
+  lr_actor: 5.0e-05
+  lr_critic: 5.0e-05
+  minibatch_size: 256
+  n_epochs: 10
+  n_max_steps_per_episode: 512
+  n_total_episodes: 50000.0
+  n_total_steps: 100000000.0
+  random_seed: 118
+  std_coef: 0.0
