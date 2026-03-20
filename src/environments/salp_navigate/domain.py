@@ -12,6 +12,7 @@ from vmas.simulator.scenario import BaseScenario
 from vmas.simulator.utils import ScenarioUtils
 import pickle
 from pathlib import Path
+from vmas.simulator.sensors import Lidar
 
 from environments.salp_navigate.dynamics import SalpDynamics
 from environments.salp_navigate.utils import (
@@ -39,6 +40,7 @@ from environments.salp_navigate.types import GlobalObservation
 import random
 import math
 
+
 if typing.TYPE_CHECKING:
     from vmas.simulator.rendering import Geom
 
@@ -56,6 +58,8 @@ class SalpNavigateDomain(BaseScenario):
         self.target_radius = self.agent_radius / 2
         self.frechet_thresh = 0.95
         self.min_n_agents = 8
+        self.lidar_range = 0.8
+        self.lidar_rays = 2
 
         self.viewer_zoom = kwargs.pop("viewer_zoom", 2.0)
 
@@ -120,7 +124,7 @@ class SalpNavigateDomain(BaseScenario):
                 name=f"target_{n_agent}_chain",
                 shape=Sphere(radius=self.target_radius),
                 color=COLOR_LIST[n_agent],
-                collide=False,
+                collide=True,
             )
             world.add_landmark(target)
             self.targets.append(target)
@@ -135,6 +139,19 @@ class SalpNavigateDomain(BaseScenario):
                 dynamics=SalpDynamics(),
                 color=COLOR_LIST[n_agent],
                 u_multiplier=self.u_multiplier,
+                sensors = (
+                    [
+                    Lidar(
+                            world,
+                            n_rays=self.lidar_rays,
+                            max_range=self.lidar_range,
+                            entity_filter=lambda e: e in self.targets,
+                            angle_start=0.5 * torch.pi,
+                            angle_end=1.5 * torch.pi,
+                            alpha=0.1,
+                        )
+                    ]
+                )
             )
             world.add_agent(agent)
             self.agents.append(agent)
@@ -157,7 +174,7 @@ class SalpNavigateDomain(BaseScenario):
             self.joints.append(joint)
 
         # Optionally add a wall obstacle (controlled by env params)
-        self.wall_enabled = kwargs.pop("wall_enabled", True)
+        self.wall_enabled = kwargs.pop("wall_enabled", False)
         if self.wall_enabled:
             # allow overriding size and position from kwargs/env_config
             # self.wall_length = kwargs.pop("wall_length", self.wall_length)
@@ -482,8 +499,8 @@ class SalpNavigateDomain(BaseScenario):
                 chain_targets = pickle.load(f)
         chain_dict = {f"chain_{i}": chain for i, chain in enumerate(chain_targets)}
 
-        # value = random.choice(list(chain_dict.keys()))
-        value = list(chain_dict.keys())[0]
+        value = random.choice(list(chain_dict.keys()))
+        # value = list(chain_dict.keys())[0]
         # print(f"Selected chain: {value}")
 
         chain = chain_dict[value]
@@ -688,6 +705,7 @@ class SalpNavigateDomain(BaseScenario):
                         self.global_observation.frechet_dist,
                         self.global_observation.t_chain_centroid_pos
                         - self.global_observation.a_chain_centroid_pos,
+
                     ],
                     dim=-1,
                 ).float()
@@ -719,6 +737,9 @@ class SalpNavigateDomain(BaseScenario):
                         a_pos_rel_2_t_centroid,
                         a_vel_rel_2_centroid,
                         a_pos_2_t_pos_err,
+                        
+                        # Lidar data
+                        agent.sensors[0].measure(),
                         
 
                     ],

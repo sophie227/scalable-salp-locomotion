@@ -461,7 +461,7 @@ def get_attention_data(
     d_state: int,
     d_action: int,
     extra_agents: int = 64,
-    seed=1990,
+    seed=1998,
 ):
 
     n_agents_list = list(range(8, extra_agents + 1, 16))
