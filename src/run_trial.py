@@ -107,11 +107,15 @@ if __name__ == "__main__":
     match args["environment"]:
         case EnvironmentEnum.VMAS_SALP_NAVIGATE:
             base_env = SalpNavigateEnvironmentParams(**env_dict)
-        # case _:
-        #     # use generic params for other cases
-        #     from environments.types import EnvironmentParams
+        case EnvironmentEnum.VMAS_SALP_NAVIGATE_LIDAR:
+            base_env = SalpNavigateEnvironmentParams(**env_dict)
+        case EnvironmentEnum.VMAS_SALP_PASSAGE:
+            base_env = SalpNavigateEnvironmentParams(**env_dict)
+        case _:
+            # use generic params for other cases
+            from environments.types import EnvironmentParams
 
-        #     base_env = EnvironmentParams(**env_dict)
+            base_env = EnvironmentParams(**env_dict)
     base_env.environment = args["environment"]
 
     exp_file = batch_dir / f"{args['name']}.yaml"

@@ -7,6 +7,7 @@ from vmas.simulator.environment import Environment
 
 from environments.rover.rover_domain import RoverDomain
 from environments.salp_navigate.domain import SalpNavigateDomain
+from environments.salp_navigate_lidar.domain import SalpNavigateLidarDomain
 from environments.salp_passage.domain import SalpPassageDomain
 
 from environments.types import EnvironmentEnum
@@ -108,6 +109,20 @@ def create_env(
                 "rotating_salps": env_config["rotating_salps"],
             }
             return create_vmas_env(n_envs, device, seed, env_args)
+
+        case EnvironmentEnum.VMAS_SALP_NAVIGATE_LIDAR:
+            env_args = {
+                # Environment data
+                "scenario": SalpNavigateLidarDomain(),
+                "training": kwargs.get("training", True),
+                # Agent data
+                "n_agents": kwargs.get("n_agents", 1),
+                "state_representation": env_config.get("state_representation", "local"),
+                "rotating_salps": env_config.get("rotating_salps", False),
+            }
+            return create_vmas_env(n_envs, device, seed, env_args)
+
+        
 
         case EnvironmentEnum.VMAS_SALP_PASSAGE:
             env_args = {

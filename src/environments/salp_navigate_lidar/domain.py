@@ -12,10 +12,10 @@ from vmas.simulator.scenario import BaseScenario
 from vmas.simulator.utils import ScenarioUtils
 import pickle
 from pathlib import Path
-# from vmas.simulator.sensors import Lidar
+from vmas.simulator.sensors import Lidar
 
-from environments.salp_navigate.dynamics import SalpDynamics
-from environments.salp_navigate.utils import (
+from environments.salp_navigate_lidar.dynamics import SalpDynamics
+from environments.salp_navigate_lidar.utils import (
     COLOR_LIST,
     COLOR_MAP,
     generate_target_points,
@@ -47,7 +47,7 @@ if typing.TYPE_CHECKING:
 torch.set_printoptions(precision=5)
 
 
-class SalpNavigateDomain(BaseScenario):
+class SalpNavigateLidarDomain(BaseScenario):
     def make_world(self, batch_dim: int, device: torch.device, **kwargs):
         # CONSTANTS
         self.agent_radius = 0.02
@@ -58,12 +58,10 @@ class SalpNavigateDomain(BaseScenario):
         self.target_radius = self.agent_radius / 2
         self.frechet_thresh = 0.95
         self.min_n_agents = 8
-        # self.lidar_range = 0.8
-        # self.lidar_rays = 2
+        self.lidar_range = 0.8
+        self.lidar_rays = 2
 
-
-
-        self.viewer_zoom = kwargs.pop("viewer_zoom", 2.0)
+        self.viewer_zoom = kwargs.pop("viewer_zoom", 1.0)
 
         # Agents
         self.n_agents = kwargs.pop("n_agents", self.min_n_agents)
@@ -99,9 +97,11 @@ class SalpNavigateDomain(BaseScenario):
         self.centroid_shaping_factor = 1.0
         self.curvature_shaping_factor = 1.0
         self.distance_shaping_factor = 1.0
+        self.crumbling_penalty_factor = 0.5  # Small penalty for chain folding
 
-        self.collision_reward_value = kwargs.pop("collision_reward", -1)
+        self.collision_reward_value = kwargs.pop("collision_reward", -3)
         self.min_collision_distance = .005
+
 
         ScenarioUtils.check_kwargs_consumed(kwargs)
 
@@ -141,7 +141,19 @@ class SalpNavigateDomain(BaseScenario):
                 dynamics=SalpDynamics(),
                 color=COLOR_LIST[n_agent],
                 u_multiplier=self.u_multiplier,
-                
+                sensors = (
+                    [
+                    Lidar(
+                            world,
+                            n_rays=self.lidar_rays,
+                            max_range=self.lidar_range,
+                            entity_filter=lambda e: e in self.targets,
+                            angle_start=0.5 * torch.pi,
+                            angle_end=1.5 * torch.pi,
+                            alpha=0.1,
+                        )
+                    ]
+                )
             )
             world.add_agent(agent)
             self.agents.append(agent)
@@ -443,16 +455,40 @@ class SalpNavigateDomain(BaseScenario):
         return chain
     
 
-    # def compute_collision_reward(self, agent_pos = None):
-    # #   for a in self.world.agents + ([self.mass] if self.asym_package else []):
-    #     self.collision_rew[:] = 0
-    #     for agent in self.world.agents:
-    #         for wall in self.walls:
-    #             self.collision_rew[
-    #                 self.world.get_distance(agent, wall) <= self.min_collision_distance
-    #                 ] += self.collision_reward_value
+    def compute_collision_reward(self, agent_pos = None):
+    #   for a in self.world.agents + ([self.mass] if self.asym_package else []):
+        self.collision_rew[:] = 0
+        if self.wall_enabled:
+            for agent in self.world.agents:
+                for wall in self.walls:
+                    self.collision_rew[
+                        self.world.get_distance(agent, wall) <= self.min_collision_distance
+                        ] += self.collision_reward_value
+        else:
+            return torch.zeros_like(self.collision_rew)
 
-    #     return self.collision_rew
+        return self.collision_rew
+
+    def compute_crumbling_penalty(self, agent_pos):
+        """Penalize sharp bends in the chain that indicate crumbling/folding."""
+        # Calculate internal angles between consecutive segments
+        internal_angles, _ = internal_angles_xy(agent_pos)
+        # print("Internal angles:", internal_angles)
+        
+        # Penalize angles that exceed 90 degrees (π/2 radians) in absolute value
+        # This indicates the chain is bending sharply or folding back on itself
+        angle_threshold = 1.0  # 90 degrees
+        sharp_bends = torch.abs(internal_angles) > angle_threshold
+        
+        # Calculate penalty as the sum of excessive bending
+        excessive_bending = torch.abs(internal_angles) - angle_threshold
+        excessive_bending = torch.clamp(excessive_bending, min=0)
+        
+        # Apply penalty factor and sum over all joints
+        penalty = -self.crumbling_penalty_factor * excessive_bending.sum(dim=-1)
+        
+        return penalty
+
 
     # def create_target_chain(self, inner_r, outer_r, rotation_angle: float = 0.0):
     #     x_coord, y_coord = generate_random_coordinate_within_annulus(
@@ -570,9 +606,11 @@ class SalpNavigateDomain(BaseScenario):
             # Get chain positions
             agent_pos = self.get_agent_chain_position()
             target_pos = self.get_target_chain_position()
-            # collision_rew = self.compute_collision_reward(agent_pos)
-            # print(f"Collision reward: {collision_rew}")
-
+            collision_rew = self.compute_collision_reward(agent_pos)
+            
+            # Crumbling penalty - penalize sharp bends that indicate chain folding
+            crumbling_penalty = self.compute_crumbling_penalty(agent_pos)
+            # print("Crumbling penalty:", crumbling_penalty)
             # Distance reward
             self.raw_dist_rew = calculate_distance_reward(agent_pos, target_pos)
             dist_shaping = self.raw_dist_rew * self.distance_shaping_factor
@@ -614,7 +652,7 @@ class SalpNavigateDomain(BaseScenario):
             goal_reached_rew += self.reached_goal_bonus * goal_reached_mask.int()
 
             # Mix all rewards
-            self.global_rew = self.distance_rew + goal_reached_rew #+ collision_rew
+            self.global_rew = self.distance_rew + goal_reached_rew + collision_rew + crumbling_penalty
 
         return self.global_rew
 
@@ -729,7 +767,7 @@ class SalpNavigateDomain(BaseScenario):
                         a_pos_2_t_pos_err,
                         
                         # Lidar data
-                        # agent.sensors[0].measure(),
+                        agent.sensors[0].measure(),
                         
 
                     ],

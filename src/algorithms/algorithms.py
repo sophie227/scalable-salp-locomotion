@@ -41,6 +41,9 @@ def run_algorithm(
         case EnvironmentEnum.VMAS_SALP_NAVIGATE:
             env_config = SalpNavigateEnvironmentParams(**env_dict)
 
+        case EnvironmentEnum.VMAS_SALP_NAVIGATE_LIDAR:
+            env_config = SalpNavigateEnvironmentParams(**env_dict)
+
         case EnvironmentEnum.VMAS_SALP_PASSAGE:
             env_config = SalpPassageEnvironmentParams(**env_dict)
 

@@ -19,7 +19,7 @@ def run_curriculum(
     trials_dir: Path,
     trial_id: str,
     stages: List[Dict],              # e.g. [{'n_agents':8}, {'n_agents':12}, {'n_agents':16}]
-    initial_checkpoint: Optional[Path] = '/home/sophie/scalable-salp-locomotion/src/experiments/results/salp_navigate_5a/gcn/0/models/best_model',
+    initial_checkpoint: Optional[Path] = '/home/sophie/scalable-salp-locomotion/src/experiments/results/salp_navigate_5a/gcn/0/models/checkpoint',
     view: bool = False,
     evaluate: bool = False,
 ):

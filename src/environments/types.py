@@ -13,6 +13,7 @@ class EnvironmentParams:
 class EnvironmentEnum(StrEnum):
     VMAS_ROVER = "rover"
     VMAS_SALP_NAVIGATE = "salp_navigate"
+    VMAS_SALP_NAVIGATE_LIDAR = "salp_navigate_lidar"
     VMAS_SALP_PASSAGE = "salp_passage"
     VMAS_BALANCE = "balance"
     VMAS_BUZZ_WIRE = "buzz_wire"

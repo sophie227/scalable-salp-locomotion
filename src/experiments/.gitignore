@@ -6,3 +6,4 @@ results*
 !yamls/salp_navigate_8a/*
 !yamls/salp_navigate_16a/*
 !yamls/salp_navigate_5a_curr/*
+!yamls/salp_navigate_5a_curr_lidar/mlp.yaml
