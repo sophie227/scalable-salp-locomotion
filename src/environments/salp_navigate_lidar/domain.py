@@ -97,7 +97,7 @@ class SalpNavigateLidarDomain(BaseScenario):
         self.centroid_shaping_factor = 1.0
         self.curvature_shaping_factor = 1.0
         self.distance_shaping_factor = 1.0
-        self.crumbling_penalty_factor = 0.5  # Small penalty for chain folding
+        self.crumbling_penalty_factor = 0.0  # Small penalty for chain folding
 
         self.collision_reward_value = kwargs.pop("collision_reward", -3)
         self.min_collision_distance = .005
@@ -610,7 +610,7 @@ class SalpNavigateLidarDomain(BaseScenario):
             
             # Crumbling penalty - penalize sharp bends that indicate chain folding
             crumbling_penalty = self.compute_crumbling_penalty(agent_pos)
-            # print("Crumbling penalty:", crumbling_penalty)
+            print("Crumbling penalty:", crumbling_penalty)
             # Distance reward
             self.raw_dist_rew = calculate_distance_reward(agent_pos, target_pos)
             dist_shaping = self.raw_dist_rew * self.distance_shaping_factor
