@@ -287,7 +287,7 @@ class SalpPassageDomain(BaseScenario):
             # Set passage positions
             for j, passage in enumerate(passages):
 
-                passage.is_rendering[:] = False
+                passage.is_rendering[:] = True
 
                 passage.set_pos(
                     torch.tensor(
@@ -301,30 +301,35 @@ class SalpPassageDomain(BaseScenario):
                     batch_index=None,
                 )
 
-                # Move open passage out of the world
+                # Move open passage out of the world (hide multiple adjacent passages)
                 indices = torch.where(self.open_passage == j)[0]
+                
+                # Also hide neighbors to widen the opening
+                for neighbor_offset in [-3, -2,-1, 0, 1,2, 3]:  # Hide 3 blocks: center ± 1
+                    neighbor_j = j + neighbor_offset
+                    if 0 <= neighbor_j < self.n_passages:
+                        neighbor_indices = torch.where(self.open_passage == neighbor_j)[0]
+                        for idx in list(indices) + list(neighbor_indices):
+                            passage.is_rendering[idx] = False
+                            passage.set_pos(
+                                torch.tensor(
+                                    [
+                                        self.passage_x_coordinate_list[j],
+                                        self.open_passage_y,
+                                    ],
+                                    dtype=torch.float32,
+                                    device=self.world.device,
+                                ),
+                                batch_index=idx,
+                            )
 
-                for idx in indices:
-                    passage.is_rendering[idx] = False
-                    passage.set_pos(
-                        torch.tensor(
-                            [
-                                self.passage_x_coordinate_list[j],
-                                self.open_passage_y,
-                            ],
-                            dtype=torch.float32,
-                            device=self.world.device,
-                        ),
-                        batch_index=idx,
-                    )
+                            self.passage_entrance_pos[idx] = passage.state.pos[
+                                idx
+                            ] + torch.tensor((0.0, -100 - self.passage_width / 2))
 
-                    self.passage_entrance_pos[idx] = passage.state.pos[
-                        idx
-                    ] + torch.tensor((0.0, -100 - self.passage_width / 2))
-
-                    self.passage_exit_pos[idx] = passage.state.pos[idx] + torch.tensor(
-                        (0.0, -100 + self.passage_width / 2)
-                    )
+                            self.passage_exit_pos[idx] = passage.state.pos[idx] + torch.tensor(
+                                (0.0, -100 + self.passage_width / 2)
+                            )
 
             # Create new agent and target chains
             self.agent_chains = [
@@ -412,30 +417,34 @@ class SalpPassageDomain(BaseScenario):
             # Set passage positions
             for i, passage in enumerate(passages):
 
-                # Move open passage out of the world
-                if self.open_passage[env_index] == i:
-                    passage.is_rendering[env_index] = False
-                    passage.set_pos(
-                        torch.tensor(
-                            [
-                                self.passage_x_coordinate_list[i],
-                                self.open_passage_y,
-                            ],
-                            dtype=torch.float32,
-                            device=self.world.device,
-                        ),
-                        batch_index=env_index,
-                    )
+                # Move open passage out of the world (hide multiple adjacent passages for wider opening)
+                for neighbor_offset in [-3, -2, -1, 0, 1, 2, 3]:  # Hide 3 blocks: center ± 1
+                    neighbor_i = i + neighbor_offset
+                    if 0 <= neighbor_i < self.n_passages:
+                        if self.open_passage[env_index] == neighbor_i:
+                            passage.is_rendering[env_index] = False
+                            passage.set_pos(
+                                torch.tensor(
+                                    [
+                                        self.passage_x_coordinate_list[i],
+                                        self.open_passage_y,
+                                    ],
+                                    dtype=torch.float32,
+                                    device=self.world.device,
+                                ),
+                                batch_index=env_index,
+                            )
 
-                    self.passage_entrance_pos[env_index] = passage.state.pos[
-                        env_index
-                    ] + torch.tensor((0.0, -100 - self.passage_width / 2))
+                            self.passage_entrance_pos[env_index] = passage.state.pos[
+                                env_index
+                            ] + torch.tensor((0.0, -100 - self.passage_width / 2))
 
-                    self.passage_exit_pos[env_index] = passage.state.pos[
-                        env_index
-                    ] + torch.tensor((0.0, -100 + self.passage_width / 2))
+                            self.passage_exit_pos[env_index] = passage.state.pos[
+                                env_index
+                            ] + torch.tensor((0.0, -100 + self.passage_width / 2))
+                            break  # Only process once per passage
 
-                else:
+                if i != self.open_passage[env_index]:
                     passage.is_rendering[env_index] = True
 
                     passage.set_pos(
@@ -596,7 +605,7 @@ class SalpPassageDomain(BaseScenario):
 
     def create_target_chain(self, rotation_angle: float = 0.0):
         
-        file_path = Path(__file__).resolve().parent.parent.parent/"target_chains.pkl"
+        file_path = Path(__file__).resolve().parent.parent.parent/"target_chains_passage.pkl"
         if file_path is not None:
             with open(file_path, "rb") as f:
                 chain_targets = pickle.load(f)
