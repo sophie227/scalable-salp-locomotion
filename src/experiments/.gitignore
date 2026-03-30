@@ -10,3 +10,7 @@ results*
 !yamls/salp_passage_5a/mlp.yaml
 !yamls/salp_passage_5a_curr/mlp.yaml
 !yamls/salp_passage_5a_curr/gcn.yaml
+!yamls/navigate_5a_1t/mlp.yaml
+!yamls/navigate_5a_1t/gcn.yaml
+!yamls/navigate_5a_3t/mlp.yaml
+!yamls/navigate_5a_3t/gcn.yaml

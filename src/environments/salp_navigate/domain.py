@@ -164,14 +164,16 @@ class SalpNavigateDomain(BaseScenario):
             self.joints.append(joint)
 
         # Optionally add a wall obstacle (controlled by env params)
-        self.wall_enabled = kwargs.pop("wall_enabled", False)
+        self.wall_enabled = kwargs.pop("wall_enabled", True)
+        self.wall_position = kwargs.pop("wall_position", None)
+        self.wall_x_random = kwargs.pop("wall_x_random", True)
         if self.wall_enabled:
             # allow overriding size and position from kwargs/env_config
             # self.wall_length = kwargs.pop("wall_length", self.wall_length)
             # self.wall_width = kwargs.pop("wall_width", self.wall_width)
             # self.wall_position = kwargs.pop("wall_position", None)
             # self.wall_position = (-.5, 0)  
-            self.wall_position = (0, 0)  
+            # self.wall_position = (0, 0)  
             
 
             self.walls = []
@@ -293,6 +295,15 @@ class SalpNavigateDomain(BaseScenario):
             if self.wall_enabled:
                 if self.wall_position is not None:
                     wall_pos = torch.tensor(self.wall_position, device=self.device)
+                elif self.wall_x_random:
+                    x_min = -1.0
+                    x_max = 1.0
+                    xs = torch.tensor(
+                        [random.uniform(x_min, x_max) for _ in range(self.world.batch_dim)],
+                        device=self.device,
+                    )
+                    ys = torch.zeros_like(xs)
+                    wall_pos = torch.stack([xs, ys], dim=1)
                 else:
                     # default hard-coded coordinate; can also randomize later
                     wall_pos = torch.tensor([0.0, 0.0], device=self.device)
