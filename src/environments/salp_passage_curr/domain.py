@@ -12,6 +12,7 @@ from vmas.simulator.scenario import BaseScenario
 from vmas.simulator.utils import ScenarioUtils
 from vmas.simulator.sensors import Lidar
 import pickle
+from pathlib import Path
 
 from environments.salp_passage.dynamics import SalpDynamics
 from environments.salp_passage.utils import (
