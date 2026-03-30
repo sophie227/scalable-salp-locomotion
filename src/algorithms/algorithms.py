@@ -14,6 +14,7 @@ from environments.types import EnvironmentEnum, EnvironmentParams
 from environments.rover.types import RoverEnvironmentParams
 from environments.salp_navigate.types import SalpNavigateEnvironmentParams
 from environments.salp_passage.types import SalpPassageEnvironmentParams
+from environments.salp_passage_curr.types import SalpPassageEnvironmentParams
 
 
 def run_algorithm(
@@ -45,6 +46,9 @@ def run_algorithm(
             env_config = SalpNavigateEnvironmentParams(**env_dict)
 
         case EnvironmentEnum.VMAS_SALP_PASSAGE:
+            env_config = SalpPassageEnvironmentParams(**env_dict)
+
+        case EnvironmentEnum.VMAS_SALP_PASSAGE_CURR:
             env_config = SalpPassageEnvironmentParams(**env_dict)
 
         case EnvironmentEnum.VMAS_BALANCE | EnvironmentEnum.VMAS_BUZZ_WIRE:

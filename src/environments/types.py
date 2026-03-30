@@ -15,6 +15,7 @@ class EnvironmentEnum(StrEnum):
     VMAS_SALP_NAVIGATE = "salp_navigate"
     VMAS_SALP_NAVIGATE_LIDAR = "salp_navigate_lidar"
     VMAS_SALP_PASSAGE = "salp_passage"
+    VMAS_SALP_PASSAGE_CURR = "salp_passage_curr"
     VMAS_BALANCE = "balance"
     VMAS_BUZZ_WIRE = "buzz_wire"
     MPE_SPREAD = "mpe_spread"

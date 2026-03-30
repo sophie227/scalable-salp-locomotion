@@ -8,7 +8,8 @@ from vmas.simulator.environment import Environment
 from environments.rover.rover_domain import RoverDomain
 from environments.salp_navigate.domain import SalpNavigateDomain
 from environments.salp_navigate_lidar.domain import SalpNavigateLidarDomain
-from environments.salp_passage.domain import SalpPassageDomain
+from environments.salp_passage.domain import SalpPassageDomain as SalpPassageDomainOrig
+from environments.salp_passage_curr.domain import SalpPassageDomain as SalpPassageCurrDomain
 
 from environments.types import EnvironmentEnum
 
@@ -127,7 +128,7 @@ def create_env(
         case EnvironmentEnum.VMAS_SALP_PASSAGE:
             env_args = {
                 # Environment data
-                "scenario": SalpPassageDomain(),
+                "scenario": SalpPassageDomainOrig(),
                 "training": kwargs.get("training", True),
                 # Agent data
                 "n_agents": kwargs.get("n_agents", 1),
@@ -135,7 +136,18 @@ def create_env(
             }
             return create_vmas_env(n_envs, device, seed, env_args)
 
-        case EnvironmentEnum.MAMUJOCO_SWIMMER:
-            # TODO: add actual mamujoco env code
-            env_args = {}
-            return None
+        case EnvironmentEnum.VMAS_SALP_PASSAGE_CURR:
+            env_args = {
+                # Environment data
+                "scenario": SalpPassageCurrDomain(),
+                "training": kwargs.get("training", True),
+                # Agent data
+                "n_agents": kwargs.get("n_agents", 1),
+                "state_representation": env_config.get("state_representation", "local"),
+                "rotating_salps": env_config.get("rotating_salps", False),
+                
+            }
+            return create_vmas_env(n_envs, device, seed, env_args)
+        #     # TODO: add actual mamujoco env code
+        #     env_args = {}
+        #     return None

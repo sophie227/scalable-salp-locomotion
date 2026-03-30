@@ -3,6 +3,8 @@ from algorithms.ppo.cirriculum import run_curriculum
 import yaml
 from environments.types import EnvironmentEnum
 from environments.salp_navigate.types import SalpNavigateEnvironmentParams
+from environments.salp_passage.types import SalpPassageEnvironmentParams
+from environments.salp_passage_curr.types import SalpPassageEnvironmentParams
 from algorithms.ppo.types import Experiment as PPO_Experiment
 
 
@@ -110,7 +112,9 @@ if __name__ == "__main__":
         case EnvironmentEnum.VMAS_SALP_NAVIGATE_LIDAR:
             base_env = SalpNavigateEnvironmentParams(**env_dict)
         case EnvironmentEnum.VMAS_SALP_PASSAGE:
-            base_env = SalpNavigateEnvironmentParams(**env_dict)
+            base_env = SalpPassageEnvironmentParams(**env_dict)
+        case EnvironmentEnum.VMAS_SALP_PASSAGE_CURR:
+            base_env = SalpPassageEnvironmentParams(**env_dict)
         case _:
             # use generic params for other cases
             from environments.types import EnvironmentParams
