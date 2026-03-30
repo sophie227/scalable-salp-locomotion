@@ -595,7 +595,7 @@ class SalpPassageDomain(BaseScenario):
 
     def create_target_chain(self, rotation_angle: float = 0.0):
         
-        file_path = "/home/sophie/scalable-salp-locomotion/src/target_chains_passage.pkl"
+        file_path = Path(__file__).resolve().parent.parent.parent/"target_chains.pkl"
         if file_path is not None:
             with open(file_path, "rb") as f:
                 chain_targets = pickle.load(f)
