@@ -166,7 +166,7 @@ class SalpNavigateDomain(BaseScenario):
         # Optionally add a wall obstacle (controlled by env params)
         self.wall_enabled = kwargs.pop("wall_enabled", True)
         self.wall_position = kwargs.pop("wall_position", None)
-        self.wall_x_random = kwargs.pop("wall_x_random", False)
+        self.wall_x_random = kwargs.pop("wall_x_random", True)
         if self.wall_enabled:
             # allow overriding size and position from kwargs/env_config
             # self.wall_length = kwargs.pop("wall_length", self.wall_length)
@@ -180,7 +180,7 @@ class SalpNavigateDomain(BaseScenario):
             self.wall = Landmark(
                 name="wall",
                 movable=False,
-                shape=Box(1.5, 0.1),
+                shape=Box(0.5, 0.1),
                 color=(0.5, 0.5, 0.5),
                 collide=True,
             )
