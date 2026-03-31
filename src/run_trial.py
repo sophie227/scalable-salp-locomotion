@@ -59,7 +59,7 @@ if __name__ == "__main__":
         help="Run validation script",
     )
 
-    parser.add_argument("--trial_id", default="1", help="Sets trial ID", type=str)
+    parser.add_argument("--trial_id", default="0", help="Sets trial ID", type=str)
 
     # curriculum options
     parser.add_argument(
@@ -73,12 +73,12 @@ if __name__ == "__main__":
         help="YAML/JSON string describing list of stage patches, e.g. '[{\"n_agents\":8},{\"n_agents\":12}]'",
         type=str,
     )
-    # parser.add_argument(
-    #     "--initial_checkpoint",
-    #     default=None,
-    #     help="Path to a pretrained model (best_model) to start curriculum from",
-    #     type=str,
-    # )
+    parser.add_argument(
+        "--initial_checkpoint",
+        default=None,
+        help="Path to a pretrained model (best_model) to start curriculum from",
+        type=str,
+    )
     # allow viewing/evaluating the curriculum rather than training
     parser.add_argument(
         "--curriculum_view",
