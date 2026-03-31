@@ -164,7 +164,7 @@ class SalpNavigateDomain(BaseScenario):
             self.joints.append(joint)
 
         # Optionally add a wall obstacle (controlled by env params)
-        self.wall_enabled = kwargs.pop("wall_enabled", True)
+        self.wall_enabled = kwargs.pop("wall_enabled", False)
         self.wall_position = kwargs.pop("wall_position", None)
         self.wall_x_random = kwargs.pop("wall_x_random", True)
         if self.wall_enabled:
