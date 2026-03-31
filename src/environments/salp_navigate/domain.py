@@ -100,7 +100,7 @@ class SalpNavigateDomain(BaseScenario):
         self.curvature_shaping_factor = 1.0
         self.distance_shaping_factor = 1.0
 
-        self.collision_reward_value = kwargs.pop("collision_reward", -1)
+        self.collision_reward_value = kwargs.pop("collision_reward", -2.0)
         self.min_collision_distance = .005
 
         ScenarioUtils.check_kwargs_consumed(kwargs)
@@ -164,9 +164,9 @@ class SalpNavigateDomain(BaseScenario):
             self.joints.append(joint)
 
         # Optionally add a wall obstacle (controlled by env params)
-        self.wall_enabled = kwargs.pop("wall_enabled", False)
+        self.wall_enabled = kwargs.pop("wall_enabled", True)
         self.wall_position = kwargs.pop("wall_position", None)
-        self.wall_x_random = kwargs.pop("wall_x_random", True)
+        self.wall_x_random = kwargs.pop("wall_x_random", False)
         if self.wall_enabled:
             # allow overriding size and position from kwargs/env_config
             # self.wall_length = kwargs.pop("wall_length", self.wall_length)
@@ -180,7 +180,7 @@ class SalpNavigateDomain(BaseScenario):
             self.wall = Landmark(
                 name="wall",
                 movable=False,
-                shape=Box(.5, 0.1),
+                shape=Box(1.5, 0.1),
                 color=(0.5, 0.5, 0.5),
                 collide=True,
             )
@@ -454,16 +454,16 @@ class SalpNavigateDomain(BaseScenario):
         return chain
     
 
-    # def compute_collision_reward(self, agent_pos = None):
-    # #   for a in self.world.agents + ([self.mass] if self.asym_package else []):
-    #     self.collision_rew[:] = 0
-    #     for agent in self.world.agents:
-    #         for wall in self.walls:
-    #             self.collision_rew[
-    #                 self.world.get_distance(agent, wall) <= self.min_collision_distance
-    #                 ] += self.collision_reward_value
+    def compute_collision_reward(self, agent_pos = None):
+    #   for a in self.world.agents + ([self.mass] if self.asym_package else []):
+        self.collision_rew[:] = 0
+        for agent in self.world.agents:
+            for wall in self.walls:
+                self.collision_rew[
+                    self.world.get_distance(agent, wall) <= self.min_collision_distance
+                    ] += self.collision_reward_value
 
-    #     return self.collision_rew
+        return self.collision_rew
 
     # def create_target_chain(self, inner_r, outer_r, rotation_angle: float = 0.0):
     #     x_coord, y_coord = generate_random_coordinate_within_annulus(
@@ -500,8 +500,8 @@ class SalpNavigateDomain(BaseScenario):
                 chain_targets = pickle.load(f)
         chain_dict = {f"chain_{i}": chain for i, chain in enumerate(chain_targets)}
 
-        value = random.choice(list(chain_dict.keys()))
-        # value = list(chain_dict.keys())[]
+        # value = random.choice(list(chain_dict.keys()))
+        value = list(chain_dict.keys())[0]
         # print(f"Selected chain: {value}")
 
         chain = chain_dict[value]
@@ -581,7 +581,7 @@ class SalpNavigateDomain(BaseScenario):
             # Get chain positions
             agent_pos = self.get_agent_chain_position()
             target_pos = self.get_target_chain_position()
-            # collision_rew = self.compute_collision_reward(agent_pos)
+            collision_rew = self.compute_collision_reward(agent_pos)
             # print(f"Collision reward: {collision_rew}")
 
             # Distance reward
@@ -625,7 +625,7 @@ class SalpNavigateDomain(BaseScenario):
             goal_reached_rew += self.reached_goal_bonus * goal_reached_mask.int()
 
             # Mix all rewards
-            self.global_rew = self.distance_rew + goal_reached_rew #+ collision_rew
+            self.global_rew = self.distance_rew + goal_reached_rew + collision_rew
 
         return self.global_rew
 
