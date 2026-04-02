@@ -4,7 +4,9 @@ import yaml
 from environments.types import EnvironmentEnum
 from environments.salp_navigate.types import SalpNavigateEnvironmentParams
 from environments.salp_passage.types import SalpPassageEnvironmentParams
-from environments.salp_passage_curr.types import SalpPassageEnvironmentParams
+from environments.salp_passage_curr.types import SalpPassageCurrEnvironmentParams
+from environments.salp_navigate_wall.types import SalpNavigateWallEnvironmentParams
+from environments.salp_navigate_lidar.types import SalpNavigateLidarEnvironmentParams
 from algorithms.ppo.types import Experiment as PPO_Experiment
 
 
@@ -59,7 +61,7 @@ if __name__ == "__main__":
         help="Run validation script",
     )
 
-    parser.add_argument("--trial_id", default="1", help="Sets trial ID", type=str)
+    parser.add_argument("--trial_id", default="2", help="Sets trial ID", type=str)
 
     # curriculum options
     parser.add_argument(
@@ -110,11 +112,13 @@ if __name__ == "__main__":
         case EnvironmentEnum.VMAS_SALP_NAVIGATE:
             base_env = SalpNavigateEnvironmentParams(**env_dict)
         case EnvironmentEnum.VMAS_SALP_NAVIGATE_LIDAR:
-            base_env = SalpNavigateEnvironmentParams(**env_dict)
+            base_env = SalpNavigateLidarEnvironmentParams(**env_dict)
         case EnvironmentEnum.VMAS_SALP_PASSAGE:
             base_env = SalpPassageEnvironmentParams(**env_dict)
         case EnvironmentEnum.VMAS_SALP_PASSAGE_CURR:
-            base_env = SalpPassageEnvironmentParams(**env_dict)
+            base_env = SalpPassageCurrEnvironmentParams(**env_dict)
+        case EnvironmentEnum.VMAS_SALP_NAVIGATE_WALL:
+            base_env = SalpNavigateWallEnvironmentParams(**env_dict)
         case _:
             # use generic params for other cases
             from environments.types import EnvironmentParams

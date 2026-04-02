@@ -38,6 +38,7 @@ class GlobalObservation:
     total_force: torch.Tensor
     total_moment: torch.Tensor
     frechet_dist: torch.Tensor
+    
 
 
 @dataclass

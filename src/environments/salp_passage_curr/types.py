@@ -42,7 +42,7 @@ class GlobalObservation:
 
 
 @dataclass
-class SalpPassageEnvironmentParams(EnvironmentParams):
+class SalpPassageCurrEnvironmentParams(EnvironmentParams):
     rotating_salps: bool = False
 
 

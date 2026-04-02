@@ -30,13 +30,13 @@ from environments.salp_navigate_lidar.utils import (
     get_neighbor_angles,
     binary_encode,
 )
-from environments.salp_navigate.rewards import (
+from environments.salp_navigate_lidar.rewards import (
     calculate_centroid_reward,
     calculate_curvature_reward,
     calculate_distance_reward,
     calculate_frechet_reward,
 )
-from environments.salp_navigate.types import GlobalObservation
+from environments.salp_navigate_lidar.types import GlobalObservation
 import random
 import math
 

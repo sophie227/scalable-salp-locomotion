@@ -180,7 +180,7 @@ class SalpNavigateDomain(BaseScenario):
             self.wall = Landmark(
                 name="wall",
                 movable=False,
-                shape=Box(0.5, 0.1),
+                shape=Box(1.5, 0.1),
                 color=(0.5, 0.5, 0.5),
                 collide=True,
             )
@@ -456,14 +456,18 @@ class SalpNavigateDomain(BaseScenario):
 
     def compute_collision_reward(self, agent_pos = None):
     #   for a in self.world.agents + ([self.mass] if self.asym_package else []):
-        self.collision_rew[:] = 0
-        for agent in self.world.agents:
-            for wall in self.walls:
-                self.collision_rew[
-                    self.world.get_distance(agent, wall) <= self.min_collision_distance
-                    ] += self.collision_reward_value
+        if self.wall_enabled:
+            self.collision_rew[:] = 0
+            for agent in self.world.agents:
+                for wall in self.walls:
+                    self.collision_rew[
+                        self.world.get_distance(agent, wall) <= self.min_collision_distance
+                        ] += self.collision_reward_value
 
-        return self.collision_rew
+            return self.collision_rew
+        else: 
+            self.collision_rew = torch.zeros_like(self.collision_rew)
+            return self.collision_rew
 
     # def create_target_chain(self, inner_r, outer_r, rotation_angle: float = 0.0):
     #     x_coord, y_coord = generate_random_coordinate_within_annulus(
@@ -829,6 +833,8 @@ class SalpNavigateDomain(BaseScenario):
             self.link_angles_prev = link_angles.clone()
             self.relative_angles_prev = relative_angles.clone()
 
+            
+
             # Build global observation
             self.global_observation = GlobalObservation(
                 # Menger curvature
@@ -861,6 +867,7 @@ class SalpNavigateDomain(BaseScenario):
                 batch_discrete_frechet_distance(
                     aligned_agent_pos, aligned_target_pos
                 ).unsqueeze(-1),
+             
             )
 
             # print("\n")

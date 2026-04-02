@@ -38,10 +38,11 @@ class GlobalObservation:
     total_force: torch.Tensor
     total_moment: torch.Tensor
     frechet_dist: torch.Tensor
+    passage_obs: typing.Union[list, float]
 
 
 @dataclass
-class SalpNavigateLidarEnvironmentParams(EnvironmentParams):
+class SalpNavigateWallEnvironmentParams(EnvironmentParams):
     # existing options
     state_representation: str = None
     rotating_salps: bool = False

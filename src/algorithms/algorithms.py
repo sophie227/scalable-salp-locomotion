@@ -14,7 +14,9 @@ from environments.types import EnvironmentEnum, EnvironmentParams
 from environments.rover.types import RoverEnvironmentParams
 from environments.salp_navigate.types import SalpNavigateEnvironmentParams
 from environments.salp_passage.types import SalpPassageEnvironmentParams
-from environments.salp_passage_curr.types import SalpPassageEnvironmentParams
+from environments.salp_passage_curr.types import SalpPassageCurrEnvironmentParams
+from environments.salp_navigate_wall.types import SalpNavigateWallEnvironmentParams
+from environments.salp_navigate_lidar.types import SalpNavigateLidarEnvironmentParams
 
 
 def run_algorithm(
@@ -43,13 +45,16 @@ def run_algorithm(
             env_config = SalpNavigateEnvironmentParams(**env_dict)
 
         case EnvironmentEnum.VMAS_SALP_NAVIGATE_LIDAR:
-            env_config = SalpNavigateEnvironmentParams(**env_dict)
+            env_config = SalpNavigateLidarEnvironmentParams(**env_dict)
 
         case EnvironmentEnum.VMAS_SALP_PASSAGE:
             env_config = SalpPassageEnvironmentParams(**env_dict)
 
         case EnvironmentEnum.VMAS_SALP_PASSAGE_CURR:
-            env_config = SalpPassageEnvironmentParams(**env_dict)
+            env_config = SalpPassageCurrEnvironmentParams(**env_dict)
+
+        case EnvironmentEnum.VMAS_SALP_NAVIGATE_WALL:
+            env_config = SalpNavigateWallEnvironmentParams(**env_dict)
 
         case EnvironmentEnum.VMAS_BALANCE | EnvironmentEnum.VMAS_BUZZ_WIRE:
             env_config = EnvironmentParams(**env_dict)

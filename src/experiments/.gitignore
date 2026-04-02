@@ -1,5 +1,6 @@
 completed*
 results*
+semi_trash*
 *.yaml
 !_env.yaml
 !check_tensorboard.yaml
@@ -14,3 +15,5 @@ results*
 !yamls/salp_navigate_5a_1t/gcn.yaml
 !yamls/salp_navigate_5a_3t/mlp.yaml
 !yamls/salp_navigate_5a_3t/gcn.yaml
+!yamls/salp_navigate_5a_wall_obs/mlp.yaml
+!yamls/salp_navigate_5a_wall_obs/gcn.yaml

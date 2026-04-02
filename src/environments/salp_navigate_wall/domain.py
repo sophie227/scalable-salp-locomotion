@@ -2,26 +2,26 @@
 #  ProrokLab (https://www.proroklab.org/)
 #  All rights reserved.
 import typing
-from typing import Callable, Dict, List
+from typing import Dict, List
 
 import torch
 from torch import Tensor
 from vmas.simulator.joints import Joint
-from vmas.simulator.core import Entity, Agent, Landmark, Box, Sphere, World
+from vmas.simulator.core import Agent, Landmark, Box, Sphere, World
 from vmas.simulator.scenario import BaseScenario
 from vmas.simulator.utils import ScenarioUtils
-from vmas.simulator.sensors import Lidar
 import pickle
 from pathlib import Path
+# from vmas.simulator.sensors import Lidar
 
-from environments.salp_passage_curr.dynamics import SalpDynamics
-from environments.salp_passage_curr.utils import (
+from environments.salp_navigate_wall.dynamics import SalpDynamics
+from environments.salp_navigate_wall.utils import (
     COLOR_LIST,
     COLOR_MAP,
     generate_target_points,
     generate_bending_curve,
     batch_discrete_frechet_distance,
-    generate_random_coordinate_coordinate_inside_box,
+    generate_random_coordinate_within_annulus,
     rotate_points,
     calculate_moment,
     internal_angles_xy,
@@ -30,16 +30,16 @@ from environments.salp_passage_curr.utils import (
     get_neighbor_angles,
     binary_encode,
 )
-from environments.salp_passage_curr.rewards import (
+from environments.salp_navigate_wall.rewards import (
     calculate_centroid_reward,
     calculate_curvature_reward,
     calculate_distance_reward,
     calculate_frechet_reward,
 )
-from environments.salp_passage_curr.types import GlobalObservation
+from environments.salp_navigate_wall.types import GlobalObservation
 import random
 import math
-from copy import deepcopy
+
 
 if typing.TYPE_CHECKING:
     from vmas.simulator.rendering import Geom
@@ -47,7 +47,7 @@ if typing.TYPE_CHECKING:
 torch.set_printoptions(precision=5)
 
 
-class SalpPassageDomain(BaseScenario):
+class SalpNavigateDomain(BaseScenario):
     def make_world(self, batch_dim: int, device: torch.device, **kwargs):
         # CONSTANTS
         self.agent_radius = 0.02
@@ -56,25 +56,14 @@ class SalpPassageDomain(BaseScenario):
         self.agent_min_angle = -45
         self.u_multiplier = 1.0
         self.target_radius = self.agent_radius / 2
-        self.frechet_thresh = 0.85
+        self.frechet_thresh = 0.95
         self.min_n_agents = 8
-        self.lidar_range = 0.8
-        self.lidar_rays = 2
-        self.open_passage_y = 400
+        # self.lidar_range = 0.8
+        # self.lidar_rays = 2
 
-        self.goal_reached_bonus = 1
-        self.passage_entrance_bonus = 1
-        self.passage_exit_bonus = 1
-        self.collision_penalty = -1
 
-        self.pass_entrance_checkpoint = torch.zeros(
-            (batch_dim), device=device, dtype=torch.bool
-        )
-        self.pass_exit_checkpoint = torch.zeros(
-            (batch_dim), device=device, dtype=torch.bool
-        )
 
-        self.viewer_zoom = kwargs.pop("viewer_zoom", 1.45)
+        self.viewer_zoom = kwargs.pop("viewer_zoom", 2.0)
 
         # Agents
         self.n_agents = kwargs.pop("n_agents", self.min_n_agents)
@@ -82,32 +71,7 @@ class SalpPassageDomain(BaseScenario):
         self.agent_chains = [None for _ in range(batch_dim)]
         self.rotating_salps = kwargs.pop("rotating_salps", False)
 
-        # Environment
-        self.passage_width = self.agent_joint_length * self.n_agents * 1.2
-        # self.passage_width = 1.0
-        self.passage_length = self.agent_joint_length * self.n_agents 
-        # self.passage_length = .1
-
-        # Set a smaller world size for training like a fence
-        # self.world_x_dim = self.passage_width * 3
-        # self.world_y_dim = self.passage_length * 3
-        self.world_x_dim = self.agent_joint_length * self.n_agents * 1.2 * 3
-        self.world_y_dim = self.agent_joint_length * self.n_agents * 3
-
-        self.n_passages = math.ceil(2 * self.world_x_dim / self.passage_width)
-        print(f"Number of passages: {self.n_passages}")
-
-        self.passage_x_coordinate_list = [
-            (i * self.passage_width) + (-self.world_x_dim + self.passage_width / 2)
-            for i in range(0, self.n_passages)
-        ]
-
-        self.free_y_dim = self.world_y_dim - self.passage_length / 2
-
-        self.agent_starting_y = -self.world_y_dim + (self.free_y_dim / 2)
-
         # Targets
-        self.target_starting_y = self.world_y_dim - (self.free_y_dim / 2)
         self.target_chains = [None for _ in range(batch_dim)]
 
         if kwargs.pop("shuffle_agents_positions", False):
@@ -116,13 +80,33 @@ class SalpPassageDomain(BaseScenario):
         # Check if we are training or evaluating
         self.training = kwargs.pop("training", True)
 
+        # Environment
+        self.train_world_x_dim = self.n_agents / 4
+        self.train_world_y_dim = self.n_agents / 4
+        self.eval_world_x_dim = 32
+        self.eval_world_y_dim = 32
+        if self.training:
+            # Set a smaller world size for training like a fence
+            self.world_x_dim = self.train_world_x_dim
+            self.world_y_dim = self.train_world_y_dim
+        else:
+            # Increase world size for evaluation, like removing the fence
+            self.world_x_dim = self.eval_world_x_dim
+            self.world_y_dim = self.eval_world_y_dim
+
         # Reward Shaping
         self.frechet_shaping_factor = 1.0
         self.centroid_shaping_factor = 1.0
-        self.passage_entrance_factor = 1.0
-        self.passage_exit_factor = 1.0
         self.curvature_shaping_factor = 1.0
         self.distance_shaping_factor = 1.0
+
+        self.collision_reward_value = kwargs.pop("collision_reward", -2.0)
+        self.min_collision_distance = .005
+
+        # Optionally add a wall obstacle (controlled by env params)
+        self.wall_enabled = kwargs.pop("wall_enabled", False)
+        self.wall_position = kwargs.pop("wall_position", None)
+        self.wall_x_random = kwargs.pop("wall_x_random", False)
 
         ScenarioUtils.check_kwargs_consumed(kwargs)
 
@@ -147,15 +131,12 @@ class SalpPassageDomain(BaseScenario):
                 name=f"target_{n_agent}_chain",
                 shape=Sphere(radius=self.target_radius),
                 color=COLOR_LIST[n_agent],
-                collide=False,
+                collide=True,
             )
             world.add_landmark(target)
             self.targets.append(target)
 
         # Add agents
-        entity_filter_targets: Callable[[Entity], bool] = lambda e: e.name.startswith(
-            "passage"
-        )
         self.agents = []
         for n_agent in range(self.n_agents):
             agent = Agent(
@@ -165,19 +146,7 @@ class SalpPassageDomain(BaseScenario):
                 dynamics=SalpDynamics(),
                 color=COLOR_LIST[n_agent],
                 u_multiplier=self.u_multiplier,
-                sensors=(
-                    [
-                        Lidar(
-                            world,
-                            n_rays=self.lidar_rays,
-                            max_range=self.lidar_range,
-                            entity_filter=entity_filter_targets,
-                            angle_start=0.5 * torch.pi,
-                            angle_end=1.5 * torch.pi,
-                            alpha=0.1,
-                        )
-                    ]
-                ),
+                
             )
             world.add_agent(agent)
             self.agents.append(agent)
@@ -199,26 +168,38 @@ class SalpPassageDomain(BaseScenario):
             world.add_joint(joint)
             self.joints.append(joint)
 
-        # Add landmarks
-        for i in range(self.n_passages):
-            passage = Landmark(
-                name=f"passage_{i}",
-                collide=True,
+        if self.wall_enabled:
+            # allow overriding size and position from kwargs/env_config
+            # self.wall_length = kwargs.pop("wall_length", self.wall_length)
+            # self.wall_width = kwargs.pop("wall_width", self.wall_width)
+            # self.wall_position = kwargs.pop("wall_position", None)
+            # self.wall_position = (-.5, 0)  
+            # self.wall_position = (0, 0)  
+            
+
+            self.walls = []
+            self.wall = Landmark(
+                name="wall",
                 movable=False,
-                shape=Box(length=self.passage_width, width=self.passage_length),
-                color=COLOR_MAP["RED"],
+                shape=Box(1.5, 0.1),
+                color=(0.5, 0.5, 0.5),
+                collide=True,
             )
-            world.add_landmark(passage)
+            world.add_landmark(self.wall)
+            self.walls.append(self.wall)
+
+        # print("landmarks:", len(world.landmarks))
+        # print("targets:", len(self.targets))
+        # print("walls:", len(self.walls))
 
         # Initialize reward tensors
         self.reached_goal_bonus = 1
         self.global_rew = torch.zeros(batch_dim, device=device, dtype=torch.float32)
         self.centroid_rew = self.global_rew.clone()
-        self.pass_entrance_rew = self.global_rew.clone()
-        self.pass_exit_rew = self.global_rew.clone()
         self.frechet_rew = self.global_rew.clone()
         self.curvature_rew = self.global_rew.clone()
         self.distance_rew = self.global_rew.clone()
+        self.collision_rew = self.global_rew.clone()
 
         # Initialize memory
         self.internal_angles_prev = torch.zeros(
@@ -237,38 +218,35 @@ class SalpPassageDomain(BaseScenario):
         self.max_steps = 512
         self.steps = torch.zeros((batch_dim), device=device, dtype=torch.float32)
 
-        self._world = world
         return world
 
     def reset_world_at(self, env_index: int = None):
+
+        agent_inner_radius = 0.05
+        agent_outer_radius = 0.15
+
+        if self.training:
+            target_inner_radius = self.train_world_x_dim * (agent_outer_radius * 3)
+            target_outer_radius = (
+                target_inner_radius + self.n_agents * self.agent_joint_length
+            )
+        else:
+            target_inner_radius = (
+                self.train_world_x_dim * 1.25 * (agent_outer_radius + 0.5)
+            )
+            target_outer_radius = (
+                target_inner_radius
+                + self.n_agents * self.agent_joint_length * (64 / self.n_agents)
+            )
 
         # Rotation params
         agent_rotation_angles = [
             random.uniform(0, 2 * math.pi) for _ in range(self.world.batch_dim)
         ]
-
         agent_rotation_tensor = torch.tensor(
             agent_rotation_angles, device=self.device
         ).unsqueeze(-1)
-
         target_rotation_angle = random.uniform(0, 2 * math.pi)
-
-        # Set passages
-        self.open_passage = torch.randint(
-            1, self.n_passages - 1, (self.world.batch_dim, 1), device=self.device
-        ).flatten()
-        print(f"Open passage indices: {self.open_passage.cpu().numpy()}")
-
-        passages = self.get_passages()
-
-        # Set passages
-        self.passage_entrance_pos = torch.zeros(
-            (self.world.batch_dim, 2), device=self.device
-        )
-
-        self.passage_exit_pos = torch.zeros(
-            (self.world.batch_dim, 2), device=self.device
-        )
 
         if env_index is None:
             # Reset steps for all envs
@@ -276,95 +254,61 @@ class SalpPassageDomain(BaseScenario):
                 (self.world.batch_dim), device=self.device, dtype=torch.float32
             )
 
-            # Reset checkpoints
-            self.pass_entrance_checkpoint = torch.zeros(
-                (self.world.batch_dim), device=self.device, dtype=torch.bool
-            )
-            self.pass_exit_checkpoint = torch.zeros(
-                (self.world.batch_dim), device=self.device, dtype=torch.bool
-            )
-
-            # Set passage positions
-            for j, passage in enumerate(passages):
-
-                passage.is_rendering[:] = True
-
-                passage.set_pos(
-                    torch.tensor(
-                        [
-                            self.passage_x_coordinate_list[j],
-                            0.0,
-                        ],
-                        dtype=torch.float32,
-                        device=self.world.device,
-                    ),
-                    batch_index=None,
-                )
-
-                # Move open passage out of the world (hide multiple adjacent passages)
-                indices = torch.where(self.open_passage == j)[0]
-                
-                # Also hide neighbors to widen the opening
-                for neighbor_offset in [-3, -2,-1, 0, 1,2, 3]:  # Hide 3 blocks: center ± 1
-                    neighbor_j = j + neighbor_offset
-                    if 0 <= neighbor_j < self.n_passages:
-                        neighbor_indices = torch.where(self.open_passage == neighbor_j)[0]
-                        for idx in list(indices) + list(neighbor_indices):
-                            passage.is_rendering[idx] = False
-                            passage.set_pos(
-                                torch.tensor(
-                                    [
-                                        self.passage_x_coordinate_list[j],
-                                        self.open_passage_y,
-                                    ],
-                                    dtype=torch.float32,
-                                    device=self.world.device,
-                                ),
-                                batch_index=idx,
-                            )
-
-                            self.passage_entrance_pos[idx] = passage.state.pos[
-                                idx
-                            ] + torch.tensor((0.0, -100 - self.passage_width / 2))
-
-                            self.passage_exit_pos[idx] = passage.state.pos[idx] + torch.tensor(
-                                (0.0, -100 + self.passage_width / 2)
-                            )
-
             # Create new agent and target chains
             self.agent_chains = [
                 self.create_agent_chain(
-                    theta_min=0.0,
-                    theta_max=0.0,
-                    rotation_angle=agent_rotation_tensor[i],
+                    agent_inner_radius,
+                    agent_outer_radius,
+                    0.0,
+                    0.0,
+                    agent_rotation_tensor[i],
                 )
                 for i in range(self.world.batch_dim)
             ]
 
             self.target_chains = [
                 self.create_target_chain(
-                    rotation_angle=0.0,
+                    target_inner_radius,
+                    target_outer_radius,
+                    target_rotation_angle,
                 )
                 for _ in range(self.world.batch_dim)
             ]
 
-            # Set positions according to chains
+            # Set agent positions and rotations
             agent_chain_tensor = torch.stack(
                 [agent_chain for agent_chain in self.agent_chains]
             )
-
             for i, agent in enumerate(self.agents):
                 pos = agent_chain_tensor[:, i, :]
                 agent.set_pos(pos, batch_index=None)
                 agent.set_rot(agent_rotation_tensor, batch_index=None)
 
+            # Set target positions
             target_chain_tensor = torch.stack(
                 [target_chain for target_chain in self.target_chains]
             )
-
             for i, target in enumerate(self.targets):
                 pos = target_chain_tensor[:, i, :]
                 target.set_pos(pos, batch_index=None)
+
+            # Set wall position if we have one configured
+            if self.wall_enabled:
+                if self.wall_position is not None:
+                    wall_pos = torch.tensor(self.wall_position, device=self.device)
+                elif self.wall_x_random:
+                    x_min = -1.0
+                    x_max = 1.0
+                    xs = torch.tensor(
+                        [random.uniform(x_min, x_max) for _ in range(self.world.batch_dim)],
+                        device=self.device,
+                    )
+                    ys = torch.zeros_like(xs)
+                    wall_pos = torch.stack([xs, ys], dim=1)
+                else:
+                    # default hard-coded coordinate; can also randomize later
+                    wall_pos = torch.tensor([0.0, 0.0], device=self.device)
+                self.wall.set_pos(wall_pos, batch_index=None)
 
             for i, joint in enumerate(self.joints):
                 half_distance = (
@@ -388,21 +332,14 @@ class SalpPassageDomain(BaseScenario):
 
             f_dist, _ = calculate_frechet_reward(a_pos, t_pos)
             c_dist, _ = calculate_centroid_reward(a_pos.mean(dim=1), t_pos.mean(dim=1))
-            pen_dist, _ = calculate_centroid_reward(
-                a_pos.mean(dim=1), self.passage_entrance_pos
-            )
-            pex_dist, _ = calculate_centroid_reward(
-                a_pos.mean(dim=1), self.passage_exit_pos
-            )
             curvature = calculate_curvature_reward(
                 a_pos, t_pos, self.agent_joint_length
             )
             dist_rew = calculate_distance_reward(a_pos, t_pos)
+            # print(a_pos.shape, t_pos.shape)
 
             self.frechet_shaping = f_dist * self.frechet_shaping_factor
             self.centroid_shaping = c_dist * self.centroid_shaping_factor
-            self.passage_entrance_shaping = pen_dist * self.passage_entrance_factor
-            self.passage_exit_shaping = pex_dist * self.passage_exit_factor
             self.curvature_shaping = curvature * self.curvature_shaping_factor
             self.distance_shaping = dist_rew * self.distance_shaping_factor
 
@@ -410,63 +347,17 @@ class SalpPassageDomain(BaseScenario):
             # Reset steps
             self.steps[env_index] = 0
 
-            # Reset checkpoints
-            self.pass_entrance_checkpoint[env_index] = 0
-            self.pass_exit_checkpoint[env_index] = 0
-
-            # Set passage positions
-            for i, passage in enumerate(passages):
-
-                # Move open passage out of the world (hide multiple adjacent passages for wider opening)
-                for neighbor_offset in [-3, -2, -1, 0, 1, 2, 3]:  # Hide 3 blocks: center ± 1
-                    neighbor_i = i + neighbor_offset
-                    if 0 <= neighbor_i < self.n_passages:
-                        if self.open_passage[env_index] == neighbor_i:
-                            passage.is_rendering[env_index] = False
-                            passage.set_pos(
-                                torch.tensor(
-                                    [
-                                        self.passage_x_coordinate_list[i],
-                                        self.open_passage_y,
-                                    ],
-                                    dtype=torch.float32,
-                                    device=self.world.device,
-                                ),
-                                batch_index=env_index,
-                            )
-
-                            self.passage_entrance_pos[env_index] = passage.state.pos[
-                                env_index
-                            ] + torch.tensor((0.0, -100 - self.passage_width / 2))
-
-                            self.passage_exit_pos[env_index] = passage.state.pos[
-                                env_index
-                            ] + torch.tensor((0.0, -100 + self.passage_width / 2))
-                            break  # Only process once per passage
-
-                if i != self.open_passage[env_index]:
-                    passage.is_rendering[env_index] = True
-
-                    passage.set_pos(
-                        torch.tensor(
-                            [
-                                self.passage_x_coordinate_list[i],
-                                0.0,
-                            ],
-                            dtype=torch.float32,
-                            device=self.world.device,
-                        ),
-                        batch_index=env_index,
-                    )
-
-            # Create agent and target chains
             self.agent_chains[env_index] = self.create_agent_chain(
-                theta_min=0.0,
-                theta_max=0.0,
-                rotation_angle=agent_rotation_tensor[env_index],
+                agent_inner_radius,
+                agent_outer_radius,
+                0.0,
+                0.0,
+                agent_rotation_tensor[env_index],
             )
             self.target_chains[env_index] = self.create_target_chain(
-                rotation_angle=target_rotation_angle,
+                target_inner_radius,
+                target_outer_radius,
+                target_rotation_angle,
             )
 
             for n_agent, agent in enumerate(self.world.agents):
@@ -477,6 +368,10 @@ class SalpPassageDomain(BaseScenario):
             for n_target, target in enumerate(self.targets):
                 pos = self.target_chains[env_index][n_target]
                 target.set_pos(pos, batch_index=env_index)
+
+
+            # Set wall position
+            # self.wall.set_pos(torch.tensor([0.0, 0.0], device=self.device), batch_index=env_index)
 
             for i, joint in enumerate(self.joints):
                 half_distance = (
@@ -505,14 +400,6 @@ class SalpPassageDomain(BaseScenario):
 
             f_dist, _ = calculate_frechet_reward(a_pos, t_pos)
             c_dist, _ = calculate_centroid_reward(a_pos.mean(dim=1), t_pos.mean(dim=1))
-
-            pen_dist, _ = calculate_centroid_reward(
-                a_pos.mean(dim=1), self.passage_entrance_pos
-            )
-            pex_dist, _ = calculate_centroid_reward(
-                a_pos.mean(dim=1), self.passage_exit_pos
-            )
-
             curvature = calculate_curvature_reward(
                 a_pos, t_pos, self.agent_joint_length
             )
@@ -523,12 +410,6 @@ class SalpPassageDomain(BaseScenario):
             )
             self.centroid_shaping[env_index] = (
                 c_dist[env_index] * self.centroid_shaping_factor
-            )
-            self.passage_entrance_shaping[env_index] = (
-                pen_dist[env_index] * self.passage_entrance_factor
-            )
-            self.passage_exit_shaping[env_index] = (
-                pen_dist[env_index] * self.passage_exit_factor
             )
             self.curvature_shaping[env_index] = (
                 curvature[env_index] * self.curvature_shaping_factor
@@ -551,14 +432,13 @@ class SalpPassageDomain(BaseScenario):
 
         return out_of_bounds
 
-    def create_agent_chain(self, theta_min, theta_max, rotation_angle: float = 0.0):
-        x_coord, y_coord = generate_random_coordinate_coordinate_inside_box(
-            0.0,
-            self.agent_starting_y,
-            self.world.x_semidim - self.passage_width * 2,
-            self.free_y_dim - self.passage_length * 3,
+    def create_agent_chain(
+        self, inner_r, outer_r, theta_min, theta_max, rotation_angle: float = 0.0
+    ):
+        x_coord, y_coord = generate_random_coordinate_within_annulus(
+            inner_r,
+            outer_r,
         )
-
         chain = rotate_points(
             points=generate_target_points(
                 x=x_coord,
@@ -573,47 +453,64 @@ class SalpPassageDomain(BaseScenario):
             angle_rad=rotation_angle,
         ).to(self.device)
         return chain
+    
 
-    # def create_target_chain(self, rotation_angle: float = 0.0):
+    def compute_collision_reward(self, agent_pos = None):
+    #   for a in self.world.agents + ([self.mass] if self.asym_package else []):
+        if self.wall_enabled:
+            self.collision_rew[:] = 0
+            for agent in self.world.agents:
+                for wall in self.walls:
+                    self.collision_rew[
+                        self.world.get_distance(agent, wall) <= self.min_collision_distance
+                        ] += self.collision_reward_value
 
-        # x_coord, y_coord = generate_random_coordinate_coordinate_inside_box(
-        #     0.0,
-        #     self.target_starting_y,
-        #     self.world.x_semidim - self.passage_width * 2,
-        #     self.free_y_dim - self.passage_length * 3,
-        # )
+            return self.collision_rew
+        else: 
+            self.collision_rew = torch.zeros_like(self.collision_rew)
+            return self.collision_rew
 
-        # n_bends = random.choice([0, 1])
-        # radius = random.uniform(0.05, 0.3)
-        # radius_scaling = (
-        #     self.n_agents // 3
-        # )  # 3 because it's the minimum amount of points for a curve
+    # def create_target_chain(self, inner_r, outer_r, rotation_angle: float = 0.0):
+    #     x_coord, y_coord = generate_random_coordinate_within_annulus(
+    #         inner_r,
+    #         outer_r,
+    #     )
 
-        # chain = rotate_points(
-        #     points=generate_bending_curve(
-        #         x0=x_coord,
-        #         y0=y_coord,
-        #         n_points=self.n_agents,
-        #         max_dist=self.agent_joint_length,
-        #         radius=radius * radius_scaling,
-        #         n_bends=n_bends,
-        #     ),
-        #     angle_rad=rotation_angle,
-        # ).to(self.device)
 
-        # return chain
+    #     n_bends = random.choice([0, 1])
+    #     radius = random.uniform(0.05, 0.3)
+    #     radius_scaling = (
+    #         self.n_agents // 3
+    #     )  # 3 because it's the minimum amount of points for a curve
 
-    def create_target_chain(self, rotation_angle: float = 0.0):
-        
-        file_path = Path(__file__).resolve().parent.parent.parent/"target_chains_passage.pkl"
+    #     chain = rotate_points(
+    #         points=generate_bending_curve(
+    #             x0=x_coord,
+    #             y0=y_coord,
+    #             n_points=self.n_agents,
+    #             max_dist=self.agent_joint_length,
+    #             radius=radius * radius_scaling,
+    #             n_bends=n_bends,
+    #         ),
+    #         angle_rad=rotation_angle,
+    #     ).to(self.device)
+
+    #     return chain
+
+    def create_target_chain(self, inner_r, outer_r, rotation_angle: float = 0.0):
+       
+        file_path = Path(__file__).resolve().parent.parent.parent/"target_chains.pkl"
         if file_path is not None:
             with open(file_path, "rb") as f:
                 chain_targets = pickle.load(f)
         chain_dict = {f"chain_{i}": chain for i, chain in enumerate(chain_targets)}
 
-        value = random.choice(list(chain_dict.keys()))
+        # value = random.choice(list(chain_dict.keys()))
+        value = list(chain_dict.keys())[0]
+        # print(f"Selected chain: {value}")
 
         chain = chain_dict[value]
+        # print(f"Selected chain: {value}, chain: {chain}")
 
         return chain
 
@@ -632,22 +529,24 @@ class SalpPassageDomain(BaseScenario):
 
     def process_action(self, agent: Agent):
 
-        if self.rotating_salps:
-            magnitude = agent.action.u[:, 0]
+        # if self.rotating_salps:
+        #     magnitude = agent.action.u[:, 0]
 
-            # Set salp's rotation
-            agent.state.rot += agent.action.u[:, 1].unsqueeze(-1)
+        #     # Set salp's rotation
+        #     agent.state.rot += agent.action.u[:, 1].unsqueeze(-1)
 
-        else:
-            magnitude_pos = self.interpolate(
-                agent.action.u[:, 0], target_min=0, target_max=1
-            )
+        # else:
+        #     magnitude_pos = self.interpolate(
+        #         agent.action.u[:, 0], target_min=0, target_max=1
+        #     )
 
-            magnitude_neg = self.interpolate(
-                agent.action.u[:, 1], target_min=0, target_max=1
-            )
+        #     magnitude_neg = self.interpolate(
+        #         agent.action.u[:, 1], target_min=0, target_max=1
+        #     )
 
-            magnitude = magnitude_pos - magnitude_neg
+        #     magnitude = magnitude_pos - magnitude_neg
+
+        magnitude = torch.tanh(agent.action.u[:, 0])
 
         # Get heading vector
         agent_rot = agent.state.rot % (2 * torch.pi)
@@ -662,24 +561,8 @@ class SalpPassageDomain(BaseScenario):
         agent.state.force = torch.stack((x, y), dim=-1)
 
     def get_targets(self):
-        return [
-            landmark
-            for landmark in self.world.landmarks
-            if landmark.name.startswith("target")
-        ]
-
-    def get_passages(self):
-        return [
-            landmark
-            for landmark in self.world.landmarks
-            if landmark.name.startswith("passage")
-        ]
-
-    def get_passages_positions(self):
-        passages = self.get_passages()
-        passage_pos = [p.state.pos for p in passages]
-
-        return torch.stack(passage_pos).transpose(1, 0).float()
+         
+        return self.targets
 
     def get_agent_chain_position(self):
         agent_pos = [a.state.pos for a in self.world.agents]
@@ -690,111 +573,64 @@ class SalpPassageDomain(BaseScenario):
         target_pos = [t.state.pos for t in targets]
         return torch.stack(target_pos).transpose(1, 0).float()
 
-    def check_collisions(self):
-        passages = self.get_passages()
-        collision_tensor = torch.zeros(
-            self.world.batch_dim, device=self.device, dtype=torch.int
-        )
-        for agent in self.world.agents:
-            for i, passage in enumerate(passages):
-                overlap_mask = torch.ones(
-                    self.world.batch_dim, device=self.device, dtype=torch.int
-                )
-
-                neighbor_check = ~((self.open_passage - i).abs() == 1)
-
-                indices = torch.where(self.open_passage == i)[0]
-
-                overlap_mask[indices] = 0
-
-                collision_tensor += (
-                    self.world.is_overlapping(agent, passage).int()
-                    * overlap_mask
-                    * neighbor_check
-                )
-
-        return collision_tensor
-
     def reward(self, agent: Agent):
         is_first = agent == self.world.agents[0]
 
         if is_first:
 
-            # Calculate rewards
             self.frechet_rew[:] = 0
             self.centroid_rew[:] = 0
-            self.pass_entrance_rew[:] = 0
-            self.pass_exit_rew[:] = 0
             self.curvature_rew[:] = 0
             self.distance_rew[:] = 0
 
             # Get chain positions
             agent_pos = self.get_agent_chain_position()
             target_pos = self.get_target_chain_position()
+            collision_rew = self.compute_collision_reward(agent_pos)
+            # print(f"Collision reward: {collision_rew}")
 
             # Distance reward
-            dist_rew = calculate_distance_reward(agent_pos, target_pos)
-            dist_shaping = dist_rew * self.distance_shaping_factor
+            self.raw_dist_rew = calculate_distance_reward(agent_pos, target_pos)
+            dist_shaping = self.raw_dist_rew * self.distance_shaping_factor
             self.distance_rew = dist_shaping - self.distance_shaping
             self.distance_shaping = dist_shaping
 
-            # Passage entrance reward
-            self.pen_dist, _ = calculate_centroid_reward(
-                agent_pos.mean(dim=1), self.passage_entrance_pos
-            )
-            passage_entrance_shaping = self.pen_dist * self.passage_entrance_factor
-            self.pass_entrance_rew = (
-                passage_entrance_shaping - self.passage_entrance_shaping
-            )
-            self.passage_entrance_shaping = passage_entrance_shaping
-
-            # Check if the agent has passed the entrance checkpoint
-            pass_entrance_mask = self.pen_dist > -0.2
-            self.pass_entrance_checkpoint = (
-                self.pass_entrance_checkpoint | pass_entrance_mask
-            )
-            self.pass_entrance_rew *= ~self.pass_entrance_checkpoint
-
-            # Passage exit reward
-            self.pex_dist, _ = calculate_centroid_reward(
-                agent_pos.mean(dim=1), self.passage_exit_pos
-            )
-            passage_exit_shaping = self.pex_dist * self.passage_exit_factor
-            self.pass_exit_rew = passage_exit_shaping - self.passage_exit_shaping
-            self.passage_exit_shaping = passage_exit_shaping
-
-            # Check if the agent has passed the exit checkpoint
-            pass_exit_mask = self.pex_dist > -0.2
-            self.pass_exit_checkpoint = self.pass_exit_checkpoint | pass_exit_mask
-            self.pass_exit_rew *= ~self.pass_exit_checkpoint
-
             # Frechet reward
+
             _, f_rew = calculate_frechet_reward(agent_pos, target_pos)
+            # f_dist, _ = calculate_frechet_reward(
+            #     agent_pos, target_pos, aligned=True
+            # )
+            # frechet_shaping = f_dist * self.frechet_shaping_factor
+            # self.frechet_rew += frechet_shaping - self.frechet_shaping
+            # self.frechet_shaping = frechet_shaping
+
+            # Curvature reward
+            # curvature_rew = calculate_curvature_reward(agent_pos, target_pos, self.agent_joint_length)
+            # curvature_shaping = curvature_rew * self.curvature_shaping_factor
+            # self.curvature_rew += torch.tanh(curvature_shaping - self.curvature_shaping)
+            # self.curvature_shaping = curvature_shaping
+
+            # Centroid reward
+            # agent_centroid = agent_pos.mean(dim=1)
+            # target_centroid = target_pos.mean(dim=1)
+            # cent_dist, _ = calculate_centroid_reward(
+            #     agent_centroid, target_centroid
+            # )
+            # centroid_shaping = cent_dist * self.centroid_shaping_factor
+            # self.centroid_rew += centroid_shaping - self.centroid_shaping
+            # self.centroid_shaping = centroid_shaping
 
             # Get reward for reaching the goal
-            self.total_rew = f_rew
+            self.raw_frech_rew = f_rew
             goal_reached_rew = torch.zeros(
                 self.world.batch_dim, device=self.device, dtype=torch.float32
             )
-            goal_reached_mask = self.total_rew > self.frechet_thresh
+            goal_reached_mask = self.raw_frech_rew > self.frechet_thresh
             goal_reached_rew += self.reached_goal_bonus * goal_reached_mask.int()
 
-            # Check for collisions
-            has_collided = self.check_collisions()
-            collision_penalty = torch.zeros(
-                self.world.batch_dim, device=self.device, dtype=torch.float32
-            )
-            collision_penalty += self.collision_penalty * has_collided
-            
-
             # Mix all rewards
-            self.global_rew = (
-                self.distance_rew
-                + collision_penalty
-                + goal_reached_rew
-                + self.pass_exit_rew
-                + self.pass_entrance_rew
-            )
+            self.global_rew = self.distance_rew + goal_reached_rew + collision_rew
 
         return self.global_rew
 
@@ -808,12 +644,16 @@ class SalpPassageDomain(BaseScenario):
 
         # Agent specific
         a_pos_rel_2_t_centroid = (
-            agent.state.pos - self.global_state.t_chain_centroid_pos
+            agent.state.pos - self.global_observation.t_chain_centroid_pos
         )
 
-        a_vel_rel_2_centroid = agent.state.vel - self.global_state.a_chain_centroid_vel
+        a_vel_rel_2_centroid = (
+            agent.state.vel - self.global_observation.a_chain_centroid_vel
+        )
 
-        a_pos_rel_2_centroid = agent.state.pos - self.global_state.a_chain_centroid_pos
+        a_pos_rel_2_centroid = (
+            agent.state.pos - self.global_observation.a_chain_centroid_pos
+        )
 
         # Get agent information
         is_first = agent == self.world.agents[0]
@@ -827,102 +667,118 @@ class SalpPassageDomain(BaseScenario):
             (self.world.batch_dim, encoding_len),
             dtype=torch.float32,
             device=self.device,
-        ) + binary_encode(idx, encoding_len)
+        ) + binary_encode(idx, encoding_len, self.device)
 
         # Get neighbor forces
         neighbor_forces = torch.zeros(
             (self.world.batch_dim, 4), dtype=torch.float32, device=self.device
         )
         if is_first:
-            neighbor_forces[:, 2:] = self.global_state.a_chain_all_forces[:, 1, :]
+            neighbor_forces[:, 2:] = self.global_observation.a_chain_all_forces[:, 1, :]
         elif is_last:
-            neighbor_forces[:, :2] = self.global_state.a_chain_all_forces[:, -2, :]
+            neighbor_forces[:, :2] = self.global_observation.a_chain_all_forces[
+                :, -2, :
+            ]
         else:
-            neighbor_forces = self.global_state.a_chain_all_forces[
+            neighbor_forces = self.global_observation.a_chain_all_forces[
                 :, idx - 1 : idx + 2 : 2, :
             ].flatten(start_dim=1)
 
         # Get distance to assigned position
         a_pos_2_t_pos_err = (
-            self.global_state.t_chain_all_pos[:, idx, :]
-            - self.global_state.a_chain_all_pos[:, idx, :]
+            self.global_observation.t_chain_all_pos[:, idx, :]
+            - self.global_observation.a_chain_all_pos[:, idx, :]
         )
 
-        # Get distance to open passage
-        a_pos_2_passage_pos_err = (
-            self.global_state.passage_pos - self.global_state.a_chain_all_pos[:, idx, :]
-        )
+        # Complete observation
+        match (scope):
+            case "global":
+                observation = torch.cat(
+                    [
+                        # Shape features
+                        torch.sin(self.global_observation.a_chain_internal_angles),
+                        torch.cos(self.global_observation.a_chain_internal_angles),
+                        self.global_observation.a_chain_internal_angles_speed,
+                        self.global_observation.curvature,
+                        # Whole body motion
+                        self.global_observation.a_chain_centroid_pos,
+                        self.global_observation.a_chain_centroid_vel,
+                        self.global_observation.a_chain_centroid_ang_pos,
+                        self.global_observation.a_chain_centroid_ang_vel,
+                        self.global_observation.total_force,
+                        self.global_observation.total_moment,
+                        # Target features
+                        self.global_observation.frechet_dist,
+                        self.global_observation.t_chain_centroid_pos
+                        - self.global_observation.a_chain_centroid_pos,
 
-        a_pos_2_pen_pos_err = (
-            self.passage_entrance_pos - self.global_state.a_chain_all_pos[:, idx, :]
-        )
-        a_pos_2_pex_pos_err = (
-            self.passage_exit_pos - self.global_state.a_chain_all_pos[:, idx, :]
-        )
+                    ],
+                    dim=-1,
+                ).float()
 
-        # observation = torch.cat(
-        #     [
-        #         # Agent id
-        #         encoded_idx,
-        #         # Neighbor data
-        #         torch.sin(self.global_state.a_chain_relative_angles[:, idx, :]),
-        #         torch.cos(self.global_state.a_chain_relative_angles[:, idx, :]),
-        #         self.global_state.a_chain_relative_angles_speed[:, idx, :],
-        #         neighbor_forces,
-        #         # Local data
-        #         a_pos_rel_2_centroid,
-        #         agent.state.pos,
-        #         agent.state.vel,
-        #         wrap_to_pi(agent.state.rot),
-        #         agent.state.ang_vel,
-        #         # Target data
-        #         a_pos_rel_2_t_centroid,
-        #         a_vel_rel_2_centroid,
-        #         a_pos_2_t_pos_err,
-        #         # Passage data,
-        #         a_pos_2_pen_pos_err,
-        #         a_pos_2_pex_pos_err,
-        #         a_pos_2_passage_pos_err,
-        #         # Lidar data,
-        #         agent.sensors[0].measure(),
-        #     ],
-        #     dim=-1,
-        # ).float()
+            case "ver_0":
 
-        observation = torch.cat(
-            [
-                # Local data
-                a_pos_rel_2_centroid,
-                agent.state.pos,
-                wrap_to_pi(agent.state.rot),
-                # Target data
-                a_pos_rel_2_t_centroid,
-                a_pos_2_t_pos_err,
-                # Passage data,
-                a_pos_2_pen_pos_err,
-                a_pos_2_pex_pos_err,
-                a_pos_2_passage_pos_err,
-                # Lidar data,
-                agent.sensors[0].measure(),
-            ],
-            dim=-1,
-        ).float()
+                # Flatten all 4 walls: (batch_dim, 4, 2) -> (batch_dim, 8)
+                passage_obs_agent = self.global_observation.passage_obs.flatten(start_dim=1)
+
+                observation = torch.cat(
+                    [
+                        # Agent id
+                        encoded_idx,
+                        # Neighbor data
+                        torch.sin(
+                            self.global_observation.a_chain_relative_angles[:, idx, :]
+                        ),
+                        torch.cos(
+                            self.global_observation.a_chain_relative_angles[:, idx, :]
+                        ),
+                        self.global_observation.a_chain_relative_angles_speed[
+                            :, idx, :
+                        ],
+                        neighbor_forces,
+                        # Local data
+                        a_pos_rel_2_centroid,
+                        agent.state.pos,
+                        agent.state.vel,
+                        wrap_to_pi(agent.state.rot),
+                        agent.state.ang_vel,
+                        # Target data
+                        a_pos_rel_2_t_centroid,
+                        a_vel_rel_2_centroid,
+                        a_pos_2_t_pos_err,
+                        
+                        # Passage/Wall observations (4 walls x 2 coords = 8 dims)
+                        passage_obs_agent,
+
+                    ],
+                    dim=-1,
+                ).float()
+
+            case "ver_1":
+                observation = torch.cat(
+                    [
+                        # Agent id
+                        encoded_idx,
+                        # Local data
+                        agent.state.pos,
+                        agent.state.vel,
+                        wrap_to_pi(agent.state.rot),
+                        agent.state.ang_vel,
+                        a_pos_rel_2_centroid,
+                        a_vel_rel_2_centroid,
+                        # Target data
+                        a_pos_rel_2_t_centroid,
+                        a_pos_2_t_pos_err,
+                    ],
+                    dim=-1,
+                ).float()
 
         return observation
 
     def observation(self, agent: Agent):
         is_first = agent == self.world.agents[0]
-
         if is_first:
             # Calculate global state
-            passage_pos = self.get_passages_positions()
-            batch_indices = torch.arange(self.world.batch_dim)
-            open_passages = passage_pos[batch_indices, self.open_passage]
-            open_passages = torch.sub(
-                open_passages,
-                torch.tensor((0, self.open_passage_y)),
-            )
-
             agent_pos = self.get_agent_chain_position()
             target_pos = self.get_target_chain_position()
             a_chain_centroid_pos = agent_pos.mean(dim=1)
@@ -980,9 +836,34 @@ class SalpPassageDomain(BaseScenario):
             self.link_angles_prev = link_angles.clone()
             self.relative_angles_prev = relative_angles.clone()
 
+            if self.wall_enabled:
+                landmarks = self.world.landmarks[self.n_agents :]
+                n_landmarks = len(landmarks)
+                max_walls = 4
+                
+                if n_landmarks > 0:
+                    # Stack landmark positions: (batch_dim, n_landmarks, 2)
+                    landmark_positions = torch.stack([lm.state.pos for lm in landmarks], dim=1)
+                    
+                    # Pad or truncate to exactly 4 walls
+                    if n_landmarks < max_walls:
+                        # Pad with zeros
+                        padding = torch.zeros(
+                            (self.world.batch_dim, max_walls - n_landmarks, 2),
+                            device=self.device,
+                            dtype=landmark_positions.dtype
+                        )
+                        passage_obs = torch.cat([landmark_positions, padding], dim=1)
+                    else:
+                        # Use only first 4 walls
+                        passage_obs = landmark_positions[:, :max_walls, :]
+                else:
+                    passage_obs = torch.zeros((self.world.batch_dim, max_walls, 2), device=self.device)
+            else:
+                passage_obs = torch.zeros((self.world.batch_dim, 4, 2), device=self.device)
+
             # Build global observation
-            self.global_state = GlobalObservation(
-                open_passages,
+            self.global_observation = GlobalObservation(
                 # Menger curvature
                 menger_curvature(agent_pos, self.agent_joint_length)
                 - menger_curvature(target_pos, self.agent_joint_length),
@@ -1013,7 +894,24 @@ class SalpPassageDomain(BaseScenario):
                 batch_discrete_frechet_distance(
                     aligned_agent_pos, aligned_target_pos
                 ).unsqueeze(-1),
+                passage_obs,
             )
+
+            # print("\n")
+
+            # print(f"dtheta {dtheta[0]}")
+            # print(f"sin_dtheta {self.global_observation.a_chain_sin_dtheta[0]}")
+            # print(f"cos_dtheta {self.global_observation.a_chain_cos_dtheta[0]}")
+            # print(f"bend_speed {self.global_observation.a_chain_bend_speed[0]}")
+
+            # print(
+            #     f"centroid_ang_pos {self.global_observation.a_chain_centroid_ang_pos}"
+            # )
+            # print(
+            #     f"centroid_ang_vel {self.global_observation.a_chain_centroid_ang_vel}"
+            # )
+            # print(f"total_force {self.global_observation.total_force}")
+            # print(f"total_moment {self.global_observation.total_moment}")
 
         return self.agent_representation(agent, self.state_representation)
 
@@ -1021,26 +919,26 @@ class SalpPassageDomain(BaseScenario):
         # Update step count
         self.steps += 1
 
-        # Check termination conditions
-        target_reached = self.total_rew > self.frechet_thresh
+        target_reached = self.raw_frech_rew > self.frechet_thresh
+
         out_of_bounds = self.is_out_of_bounds(
             self.world.x_semidim, self.world.y_semidim
         )
-        has_collided = self.check_collisions()
+
         timeout = self.steps >= self.max_steps
 
-        return target_reached | out_of_bounds | has_collided | timeout
+        return target_reached | out_of_bounds | timeout
 
     def info(self, agent: Agent) -> Dict[str, Tensor]:
         chain_pos = self.get_agent_chain_position()
         target_pos = self.get_target_chain_position()
+        world_dims = torch.tensor([self.world_x_dim, self.world_y_dim])
         return {
-            "target_pose": (target_pos),
-            "chain_pose": (chain_pos),
-            "pen_dist": self.pen_dist,
-            "pex_dist": self.pex_dist,
-            "pen_rew": self.pass_entrance_rew,
-            "pex_rew": self.pass_exit_rew,
+            "target_pose": target_pos,
+            "chain_pose": chain_pos,
+            "world_dims": world_dims,
+            "frechet_rew": self.raw_frech_rew,
+            "distance_rew": self.raw_dist_rew,
         }
 
     def extra_render(self, env_index: int = 0) -> "List[Geom]":
@@ -1071,13 +969,6 @@ class SalpPassageDomain(BaseScenario):
         range_circle = rendering.make_circle(self.target_radius, filled=False)
         xform = rendering.Transform()
         xform.set_translation(*t_pos[env_index].mean(dim=0))
-        range_circle.add_attr(xform)
-        range_circle.set_color(*COLOR_MAP["BLACK"].value)
-        geoms.append(range_circle)
-
-        range_circle = rendering.make_circle(self.target_radius, filled=False)
-        xform = rendering.Transform()
-        xform.set_translation(*self.passage_entrance_pos[env_index])
         range_circle.add_attr(xform)
         range_circle.set_color(*COLOR_MAP["BLACK"].value)
         geoms.append(range_circle)
