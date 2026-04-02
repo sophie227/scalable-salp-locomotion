@@ -121,7 +121,7 @@ def create_env(
                 "n_agents": kwargs.get("n_agents", 1),
                 "state_representation": env_config.get("state_representation", "local"),
                 "rotating_salps": env_config.get("rotating_salps", False),
-                "wall_enabled": env_config.get("wall_enabled", True),
+               
             }
             return create_vmas_env(n_envs, device, seed, env_args)
 

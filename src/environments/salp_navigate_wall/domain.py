@@ -101,7 +101,7 @@ class SalpNavigateDomain(BaseScenario):
         self.distance_shaping_factor = 1.0
 
         self.collision_reward_value = kwargs.pop("collision_reward", -2.0)
-        self.min_collision_distance = .005
+        self.min_collision_distance = .22
 
         # Optionally add a wall obstacle (controlled by env params)
         self.wall_enabled = kwargs.pop("wall_enabled", False)
@@ -109,6 +109,7 @@ class SalpNavigateDomain(BaseScenario):
         self.wall_x_random = kwargs.pop("wall_x_random", False)
 
         ScenarioUtils.check_kwargs_consumed(kwargs)
+
 
         self.device = device
         # Make world
@@ -461,8 +462,10 @@ class SalpNavigateDomain(BaseScenario):
             self.collision_rew[:] = 0
             for agent in self.world.agents:
                 for wall in self.walls:
+                    dist = self.world.get_distance(agent, wall)
+                    print(f"Distance between agent {agent.name} and wall: {dist}")
                     self.collision_rew[
-                        self.world.get_distance(agent, wall) <= self.min_collision_distance
+                        dist <= self.min_collision_distance
                         ] += self.collision_reward_value
 
             return self.collision_rew
@@ -587,7 +590,7 @@ class SalpNavigateDomain(BaseScenario):
             agent_pos = self.get_agent_chain_position()
             target_pos = self.get_target_chain_position()
             collision_rew = self.compute_collision_reward(agent_pos)
-            # print(f"Collision reward: {collision_rew}")
+            print(f"Collision reward: {collision_rew}")
 
             # Distance reward
             self.raw_dist_rew = calculate_distance_reward(agent_pos, target_pos)

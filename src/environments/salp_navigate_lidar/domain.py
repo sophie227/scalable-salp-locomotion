@@ -100,7 +100,7 @@ class SalpNavigateLidarDomain(BaseScenario):
         self.crumbling_penalty_factor = 0.0  # Small penalty for chain folding
 
         self.collision_reward_value = kwargs.pop("collision_reward", -3)
-        self.min_collision_distance = .005
+        self.min_collision_distance = 0.1
 
 
         ScenarioUtils.check_kwargs_consumed(kwargs)
