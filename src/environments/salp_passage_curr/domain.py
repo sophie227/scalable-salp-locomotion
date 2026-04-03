@@ -136,7 +136,7 @@ class SalpPassageDomain(BaseScenario):
             substeps=15,
             collision_force=1500,
             joint_force=900,
-            contact_margin=1e-3,
+            contact_margin=0.01,
             torque_constraint_force=0.1,
         )
 
@@ -779,18 +779,21 @@ class SalpPassageDomain(BaseScenario):
             goal_reached_mask = self.total_rew > self.frechet_thresh
             goal_reached_rew += self.reached_goal_bonus * goal_reached_mask.int()
 
-            # Check for collisions
-            has_collided = self.check_collisions()
-            collision_penalty = torch.zeros(
-                self.world.batch_dim, device=self.device, dtype=torch.float32
-            )
-            collision_penalty += self.collision_penalty * has_collided
+            collision_count = self.check_collisions()
+            self.collision_penalty = -2.0 * collision_count.float()
+            print(self.collision_penalty)
+            # # Check for collisions
+            # has_collided = self.check_collisions()
+            # collision_penalty = torch.zeros(
+            #     self.world.batch_dim, device=self.device, dtype=torch.float32
+            # )
+            # collision_penalty += self.collision_penalty * has_collided
             
 
             # Mix all rewards
             self.global_rew = (
                 self.distance_rew
-                + collision_penalty
+                + self.collision_penalty
                 + goal_reached_rew
                 + self.pass_exit_rew
                 + self.pass_entrance_rew

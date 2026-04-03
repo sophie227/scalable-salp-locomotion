@@ -100,8 +100,8 @@ class SalpNavigateDomain(BaseScenario):
         self.curvature_shaping_factor = 1.0
         self.distance_shaping_factor = 1.0
 
-        self.collision_reward_value = kwargs.pop("collision_reward", -2.0)
-        self.min_collision_distance = .005
+        # self.collision_reward_value = kwargs.pop("collision_reward", -2.0)
+        self.min_collision_distance = 1.0
 
         ScenarioUtils.check_kwargs_consumed(kwargs)
 
@@ -164,7 +164,7 @@ class SalpNavigateDomain(BaseScenario):
             self.joints.append(joint)
 
         # Optionally add a wall obstacle (controlled by env params)
-        self.wall_enabled = kwargs.pop("wall_enabled", False)
+        self.wall_enabled = kwargs.pop("wall_enabled", True)
         self.wall_position = kwargs.pop("wall_position", None)
         self.wall_x_random = kwargs.pop("wall_x_random", True)
         if self.wall_enabled:
@@ -454,20 +454,25 @@ class SalpNavigateDomain(BaseScenario):
         return chain
     
 
-    def compute_collision_reward(self, agent_pos = None):
-    #   for a in self.world.agents + ([self.mass] if self.asym_package else []):
+    def compute_collision_reward(self):
         if self.wall_enabled:
-            self.collision_rew[:] = 0
-            for agent in self.world.agents:
-                for wall in self.walls:
-                    self.collision_rew[
-                        self.world.get_distance(agent, wall) <= self.min_collision_distance
-                        ] += self.collision_reward_value
-
+            self.collision_rew.zero_()
+            # Agent-agent collisions
+            for i in range(len(self.world.agents)):
+                for j in range(i+1, len(self.world.agents)):
+                    a1 = self.world.agents[i]
+                    a2 = self.world.agents[j]
+                    mask = self.world.is_overlapping(a1, a2)
+                    self.collision_rew[mask] -= 5
+            # Agent-wall collisions
+            for a in self.world.agents:
+                for landmark in self.world.landmarks[self.n_agents:]:
+                    if landmark.collide:
+                        mask = self.world.is_overlapping(a, landmark)
+                        self.collision_rew[mask] -= 5
             return self.collision_rew
-        else: 
-            self.collision_rew = torch.zeros_like(self.collision_rew)
-            return self.collision_rew
+        else:
+            return torch.zeros_like(self.collision_rew)
 
     # def create_target_chain(self, inner_r, outer_r, rotation_angle: float = 0.0):
     #     x_coord, y_coord = generate_random_coordinate_within_annulus(
@@ -585,8 +590,8 @@ class SalpNavigateDomain(BaseScenario):
             # Get chain positions
             agent_pos = self.get_agent_chain_position()
             target_pos = self.get_target_chain_position()
-            collision_rew = self.compute_collision_reward(agent_pos)
-            # print(f"Collision reward: {collision_rew}")
+            collision_rew = self.compute_collision_reward()
+            print(f"Collision reward: {collision_rew}")
 
             # Distance reward
             self.raw_dist_rew = calculate_distance_reward(agent_pos, target_pos)
