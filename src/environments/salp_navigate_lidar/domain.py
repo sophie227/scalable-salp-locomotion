@@ -126,7 +126,7 @@ class SalpNavigateLidarDomain(BaseScenario):
                 name=f"target_{n_agent}_chain",
                 shape=Sphere(radius=self.target_radius),
                 color=COLOR_LIST[n_agent],
-                collide=True,
+                collide=False,
             )
             world.add_landmark(target)
             self.targets.append(target)

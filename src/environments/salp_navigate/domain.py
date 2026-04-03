@@ -126,7 +126,7 @@ class SalpNavigateDomain(BaseScenario):
                 name=f"target_{n_agent}_chain",
                 shape=Sphere(radius=self.target_radius),
                 color=COLOR_LIST[n_agent],
-                collide=True,
+                collide=False,
             )
             world.add_landmark(target)
             self.targets.append(target)
@@ -164,7 +164,7 @@ class SalpNavigateDomain(BaseScenario):
             self.joints.append(joint)
 
         # Optionally add a wall obstacle (controlled by env params)
-        self.wall_enabled = kwargs.pop("wall_enabled", True)
+        self.wall_enabled = kwargs.pop("wall_enabled", False)
         self.wall_position = kwargs.pop("wall_position", None)
         self.wall_x_random = kwargs.pop("wall_x_random", True)
         if self.wall_enabled:
@@ -504,8 +504,8 @@ class SalpNavigateDomain(BaseScenario):
                 chain_targets = pickle.load(f)
         chain_dict = {f"chain_{i}": chain for i, chain in enumerate(chain_targets)}
 
-        # value = random.choice(list(chain_dict.keys()))
-        value = list(chain_dict.keys())[0]
+        value = random.choice(list(chain_dict.keys()))
+        # value = list(chain_dict.keys())[0]
         # print(f"Selected chain: {value}")
 
         chain = chain_dict[value]
