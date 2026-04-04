@@ -434,17 +434,16 @@ class SalpNavigateDomain(BaseScenario):
             for n_target, target in enumerate(self.targets):
                 pos = self.target_chains[env_index][n_target]
                 target.set_pos(pos, batch_index=env_index)
-
-
-            # Set wall position
-            wall2_pos = torch.tensor([0.0, 0.75], device=self.device)
-            # wall3_pos = torch.tensor([0.5, 0.0], device=self.device)
-            # wall4_pos = torch.tensor([-0.5, 0.0], device=self.device)
-            # wall5_pos = torch.tensor([0.0, -0.5], device=self.device)
-            self.wall2.set_pos(wall2_pos, batch_index=env_index)
-            # self.wall3.set_pos(wall3_pos, batch_index=env_index)
-            # self.wall4.set_pos(wall4_pos, batch_index=env_index)
-            # self.wall5.set_pos(wall5_pos, batch_index=env_index)
+            if self.wall_enabled:
+                # Set wall position
+                wall2_pos = torch.tensor([0.0, 0.75], device=self.device)
+                # wall3_pos = torch.tensor([0.5, 0.0], device=self.device)
+                # wall4_pos = torch.tensor([-0.5, 0.0], device=self.device)
+                # wall5_pos = torch.tensor([0.0, -0.5], device=self.device)
+                self.wall2.set_pos(wall2_pos, batch_index=env_index)
+                # self.wall3.set_pos(wall3_pos, batch_index=env_index)
+                # self.wall4.set_pos(wall4_pos, batch_index=env_index)
+                # self.wall5.set_pos(wall5_pos, batch_index=env_index)
 
             for i, joint in enumerate(self.joints):
                 half_distance = (
