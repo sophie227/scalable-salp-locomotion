@@ -978,6 +978,8 @@ class SalpPassageDomain(BaseScenario):
                 wrap_to_pi(relative_angles - self.relative_angles_prev) / self.world.dt
             )
 
+            
+
             # Store previous dtheta
             self.internal_angles_prev = internal_angles.clone()
             self.link_angles_prev = link_angles.clone()

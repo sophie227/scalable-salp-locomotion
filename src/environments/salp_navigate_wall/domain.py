@@ -104,7 +104,7 @@ class SalpNavigateDomain(BaseScenario):
         self.min_collision_distance = .22
 
         # Optionally add a wall obstacle (controlled by env params)
-        self.wall_enabled = kwargs.pop("wall_enabled", False)
+        self.wall_enabled = kwargs.pop("wall_enabled", True)
         self.wall_position = kwargs.pop("wall_position", None)
         self.wall_x_random = kwargs.pop("wall_x_random", False)
 
@@ -182,10 +182,19 @@ class SalpNavigateDomain(BaseScenario):
             self.wall = Landmark(
                 name="wall",
                 movable=False,
-                shape=Box(1.5, 0.1),
+                shape=Box(0.5, 0.1),
                 color=(0.5, 0.5, 0.5),
                 collide=True,
             )
+            self.wall2 = Landmark(
+                name="wall2",
+                movable=False,
+                shape=Box(0.5, 0.1),
+                color=(0.5, 0.5, 0.5),
+                collide=True,
+            )
+            world.add_landmark(self.wall2)
+            self.walls.append(self.wall2)
             world.add_landmark(self.wall)
             self.walls.append(self.wall)
 
@@ -297,6 +306,8 @@ class SalpNavigateDomain(BaseScenario):
             if self.wall_enabled:
                 if self.wall_position is not None:
                     wall_pos = torch.tensor(self.wall_position, device=self.device)
+                    wall2_pos = torch.tensor([0.0, .75], device=self.device)
+                    self.wall2.set_pos(wall2_pos, batch_index=None)
                 elif self.wall_x_random:
                     x_min = -1.0
                     x_max = 1.0
@@ -308,7 +319,9 @@ class SalpNavigateDomain(BaseScenario):
                     wall_pos = torch.stack([xs, ys], dim=1)
                 else:
                     # default hard-coded coordinate; can also randomize later
-                    wall_pos = torch.tensor([0.0, 0.0], device=self.device)
+                    wall_pos = torch.tensor([0.25, 0.0], device=self.device)
+                    wall2_pos = torch.tensor([0.0, 0.75], device=self.device)
+                    self.wall2.set_pos(wall2_pos, batch_index=None)
                 self.wall.set_pos(wall_pos, batch_index=None)
 
             for i, joint in enumerate(self.joints):
@@ -372,7 +385,8 @@ class SalpNavigateDomain(BaseScenario):
 
 
             # Set wall position
-            # self.wall.set_pos(torch.tensor([0.0, 0.0], device=self.device), batch_index=env_index)
+            wall2_pos = torch.tensor([0.0, 0.75], device=self.device)
+            self.wall2.set_pos(wall2_pos, batch_index=env_index)
 
             for i, joint in enumerate(self.joints):
                 half_distance = (
@@ -463,7 +477,7 @@ class SalpNavigateDomain(BaseScenario):
             for agent in self.world.agents:
                 for wall in self.walls:
                     dist = self.world.get_distance(agent, wall)
-                    print(f"Distance between agent {agent.name} and wall: {dist}")
+                    # print(f"Distance between agent {agent.name} and wall: {dist}")
                     self.collision_rew[
                         dist <= self.min_collision_distance
                         ] += self.collision_reward_value
@@ -839,32 +853,31 @@ class SalpNavigateDomain(BaseScenario):
             self.link_angles_prev = link_angles.clone()
             self.relative_angles_prev = relative_angles.clone()
 
+            passage_obs = torch.zeros((self.world.batch_dim, 4, 2), device=self.device)
+
             if self.wall_enabled:
-                landmarks = self.world.landmarks[self.n_agents :]
+                landmarks = self.world.landmarks[self.n_agents + (self.n_agents - 1) :]
                 n_landmarks = len(landmarks)
                 max_walls = 4
-                
+
                 if n_landmarks > 0:
                     # Stack landmark positions: (batch_dim, n_landmarks, 2)
-                    landmark_positions = torch.stack([lm.state.pos for lm in landmarks], dim=1)
-                    
+                    landmark_positions = torch.stack(
+                        [lm.state.pos for lm in landmarks], dim=1
+                    )
+
+                    print(landmark_positions)
                     # Pad or truncate to exactly 4 walls
                     if n_landmarks < max_walls:
-                        # Pad with zeros
                         padding = torch.zeros(
                             (self.world.batch_dim, max_walls - n_landmarks, 2),
                             device=self.device,
-                            dtype=landmark_positions.dtype
+                            dtype=landmark_positions.dtype,
                         )
                         passage_obs = torch.cat([landmark_positions, padding], dim=1)
                     else:
-                        # Use only first 4 walls
                         passage_obs = landmark_positions[:, :max_walls, :]
-                else:
-                    passage_obs = torch.zeros((self.world.batch_dim, max_walls, 2), device=self.device)
-            else:
-                passage_obs = torch.zeros((self.world.batch_dim, 4, 2), device=self.device)
-
+            print(f"passage_obs: {passage_obs}")
             # Build global observation
             self.global_observation = GlobalObservation(
                 # Menger curvature
