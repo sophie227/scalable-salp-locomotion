@@ -579,8 +579,8 @@ class SalpNavigateDomain(BaseScenario):
                 chain_targets = pickle.load(f)
         chain_dict = {f"chain_{i}": chain for i, chain in enumerate(chain_targets)}
 
-        # value = random.choice(list(chain_dict.keys()))
-        value = list(chain_dict.keys())[0]
+        value = random.choice(list(chain_dict.keys()))
+        # value = list(chain_dict.keys())[0]
         # print(f"Selected chain: {value}")
 
         chain = chain_dict[value]
