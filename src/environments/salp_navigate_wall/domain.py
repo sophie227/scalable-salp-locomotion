@@ -60,6 +60,7 @@ class SalpNavigateDomain(BaseScenario):
         self.min_n_agents = 8
         # self.lidar_range = 0.8
         # self.lidar_rays = 2
+        self.collision_penalty = -1.0
 
 
 
@@ -100,11 +101,11 @@ class SalpNavigateDomain(BaseScenario):
         self.curvature_shaping_factor = 1.0
         self.distance_shaping_factor = 1.0
 
-        self.collision_reward_value = kwargs.pop("collision_reward", -2.0)
-        self.min_collision_distance = .22
+        # self.collision_reward_value = kwargs.pop("collision_reward", -2.0)
+        self.min_collision_distance = .04
 
         # Optionally add a wall obstacle (controlled by env params)
-        self.wall_enabled = kwargs.pop("wall_enabled", False)
+        self.wall_enabled = kwargs.pop("wall_enabled", True)
         self.wall_position = kwargs.pop("wall_position", None)
         self.wall_x_random = kwargs.pop("wall_x_random", True)
 
@@ -187,14 +188,14 @@ class SalpNavigateDomain(BaseScenario):
                 collide=True,
                 mass=100.0,
             )
-            # self.wall2 = Landmark(
-            #     name="wall2",
-            #     movable=False,
-            #     shape=Box(0.1, 0.5),
-            #     color=(0.5, 0.5, 0.5),
-            #     collide=True,
-            #     mass=100.0,
-            # )
+            self.wall2 = Landmark(
+                name="wall2",
+                movable=False,
+                shape=Box(0.5, 0.1),
+                color=(0.5, 0.5, 0.5),
+                collide=True,
+                mass=100.0,
+            )
             # self.wall3 = Landmark(
             #     name="wall3",
             #     movable=False,
@@ -219,8 +220,8 @@ class SalpNavigateDomain(BaseScenario):
             #     collide=True,
             #     mass=100.0,
             # )
-            # world.add_landmark(self.wall2)
-            # self.walls.append(self.wall2)
+            world.add_landmark(self.wall2)
+            self.walls.append(self.wall2)
             world.add_landmark(self.wall)
             self.walls.append(self.wall)
             # world.add_landmark(self.wall3)
@@ -235,7 +236,7 @@ class SalpNavigateDomain(BaseScenario):
         # print("walls:", len(self.walls))
 
         # Initialize reward tensors
-        self.reached_goal_bonus = 3
+        self.reached_goal_bonus = 1
         self.global_rew = torch.zeros(batch_dim, device=device, dtype=torch.float32)
         self.centroid_rew = self.global_rew.clone()
         self.frechet_rew = self.global_rew.clone()
@@ -338,39 +339,42 @@ class SalpNavigateDomain(BaseScenario):
             if self.wall_enabled:
                 if self.wall_position is not None:
                     wall_pos = torch.tensor(self.wall_position, device=self.device)
-                    # wall2_pos = torch.tensor([0.75, .75], device=self.device)
+                    wall2_pos = torch.tensor([2.0, 0], device=self.device)
                     # wall3_pos = torch.tensor([0.5, 0.0], device=self.device)
                     # wall4_pos = torch.tensor([-0.5, 0.0], device=self.device)
                     # wall5_pos = torch.tensor([0.0, -0.5], device=self.device)
-                    # self.wall2.set_pos(wall2_pos, batch_index=None)
+                    self.wall2.set_pos(wall2_pos, batch_index=None)
                     # self.wall3.set_pos(wall3_pos, batch_index=None)
                     # self.wall4.set_pos(wall4_pos, batch_index=None)
                     # self.wall5.set_pos(wall5_pos, batch_index=None)
                 elif self.wall_x_random:
-                    x_min = -1.0
-                    x_max = 1.0
-                    xs = torch.tensor(
-                        [random.uniform(x_min, x_max) for _ in range(self.world.batch_dim)],
+                    wall1_x_min = -3.0
+                    wall1_x_max = -1.5
+                    wall1_xs = torch.tensor(
+                        [random.uniform(wall1_x_min, wall1_x_max) for _ in range(self.world.batch_dim)],
                         device=self.device,
                     )
-                    ys = torch.zeros_like(xs)
-                    wall_pos = torch.stack([xs, ys], dim=1)
-                    # wall2_pos = torch.tensor([0.75, 0.75], device=self.device)
+                    wall2_x_min = 1.5
+                    wall2_x_max = 3.0
+                    wall2_xs = torch.tensor([random.uniform(wall2_x_min, wall2_x_max) for _ in range(self.world.batch_dim)], device=self.device)
+                    ys = torch.zeros_like(wall1_xs)
+                    wall_pos = torch.stack([wall1_xs, ys], dim=1)
+                    wall2_pos = torch.stack([wall2_xs, ys], dim=1)
                     # wall3_pos = torch.tensor([0.5, 0.0], device=self.device)
                     # wall4_pos = torch.tensor([-0.5, 0.0], device=self.device)
                     # wall5_pos = torch.tensor([0.0, -0.5], device=self.device)
-                    # self.wall2.set_pos(wall2_pos, batch_index=None)
+                    self.wall2.set_pos(wall2_pos, batch_index=None)
                     # self.wall3.set_pos(wall3_pos, batch_index=None)
                     # self.wall4.set_pos(wall4_pos, batch_index=None)
                     # self.wall5.set_pos(wall5_pos, batch_index=None)
                 else:
                     # default hard-coded coordinate; can also randomize later
-                    wall_pos = torch.tensor([0.0, 0.0], device=self.device)
-                    # wall2_pos = torch.tensor([0.75, 0.75], device=self.device)
+                    wall_pos = torch.tensor([-2.0, 0.0], device=self.device)
+                    wall2_pos = torch.tensor([2.0, 0], device=self.device)
                     # wall3_pos = torch.tensor([0.5, 0.0], device=self.device)
                     # wall4_pos = torch.tensor([-0.5, 0.0], device=self.device)
                     # wall5_pos = torch.tensor([0.0, -0.5], device=self.device)
-                    # self.wall2.set_pos(wall2_pos, batch_index=None)
+                    self.wall2.set_pos(wall2_pos, batch_index=None)
                     # self.wall3.set_pos(wall3_pos, batch_index=None)
                     # self.wall4.set_pos(wall4_pos, batch_index=None)
                     # self.wall5.set_pos(wall5_pos, batch_index=None)
@@ -437,11 +441,11 @@ class SalpNavigateDomain(BaseScenario):
             if self.wall_enabled:
                 # Set wall position
                 wall_pos = torch.tensor(self.wall_position, device=self.device) if self.wall_position is not None else torch.tensor([0.0, 0.0], device=self.device)
-                # wall2_pos = torch.tensor([0.75, 0.75], device=self.device)
+                wall2_pos = torch.tensor([2.0, 0], device=self.device)
                 # wall3_pos = torch.tensor([0.5, 0.0], device=self.device)
                 # wall4_pos = torch.tensor([-0.5, 0.0], device=self.device)
                 # wall5_pos = torch.tensor([0.0, -0.5], device=self.device)
-                # self.wall2.set_pos(wall2_pos, batch_index=env_index)
+                self.wall2.set_pos(wall2_pos, batch_index=env_index)
                 # self.wall3.set_pos(wall3_pos, batch_index=env_index)
                 # self.wall4.set_pos(wall4_pos, batch_index=env_index)
                 # self.wall5.set_pos(wall5_pos, batch_index=env_index)
@@ -528,22 +532,33 @@ class SalpNavigateDomain(BaseScenario):
         return chain
     
 
-    def compute_collision_reward(self, agent_pos = None):
-    #   for a in self.world.agents + ([self.mass] if self.asym_package else []):
-        if self.wall_enabled:
-            self.collision_rew[:] = 0
-            for agent in self.world.agents:
-                for wall in self.walls:
-                    dist = self.world.get_distance(agent, wall)
-                    # print(f"Distance between agent {agent.name} and wall: {dist}")
-                    self.collision_rew[
-                        dist <= self.min_collision_distance
-                        ] += self.collision_reward_value
+    def check_collisions(self) -> Tensor:
+        """Returns a [batch_dim] bool tensor — True where any agent is within min_collision_distance of any wall."""
+        if not self.wall_enabled:
+            return torch.zeros(self.world.batch_dim, dtype=torch.bool, device=self.world.device)
+        collided = torch.zeros(self.world.batch_dim, dtype=torch.bool, device=self.world.device)
+        for agent in self.world.agents:
+            for wall in self.walls:
+                dist = self.world.get_distance(agent, wall)
+                collided |= dist <= self.min_collision_distance
+        return collided
 
-            return self.collision_rew
-        else: 
-            self.collision_rew = torch.zeros_like(self.collision_rew)
-            return self.collision_rew
+    # def compute_collision_reward(self, agent_pos = None):
+    # #   for a in self.world.agents + ([self.mass] if self.asym_package else []):
+    #     if self.wall_enabled:
+    #         self.collision_rew[:] = 0
+    #         for agent in self.world.agents:
+    #             for wall in self.walls:
+    #                 dist = self.world.get_distance(agent, wall)
+    #                 # print(f"Distance between agent {agent.name} and wall: {dist}")
+    #                 self.collision_rew[
+    #                     dist <= self.min_collision_distance
+    #                     ] += self.collision_reward_value
+
+    #         return self.collision_rew
+    #     else: 
+    #         self.collision_rew = torch.zeros_like(self.collision_rew)
+    #         return self.collision_rew
 
     # def create_target_chain(self, inner_r, outer_r, rotation_angle: float = 0.0):
     #     x_coord, y_coord = generate_random_coordinate_within_annulus(
@@ -574,18 +589,19 @@ class SalpNavigateDomain(BaseScenario):
 
     def create_target_chain(self, inner_r, outer_r, rotation_angle: float = 0.0):
        
-        file_path = Path(__file__).resolve().parent.parent.parent/"target_chains.pkl"
+        file_path = Path(__file__).resolve().parent.parent.parent/"target_chains_2.pkl"
         if file_path is not None:
             with open(file_path, "rb") as f:
                 chain_targets = pickle.load(f)
         chain_dict = {f"chain_{i}": chain for i, chain in enumerate(chain_targets)}
 
         value = random.choice(list(chain_dict.keys()))
-        # value = list(chain_dict.keys())[0]
+        # value = list(chain_dict.keys())[4]
         # print(f"Selected chain: {value}")
+        # print(f"Available chains: {list(chain_dict.keys())}")
 
         chain = chain_dict[value]
-        # print(f"Selected chain: {value}, chain: {chain}")
+        print(f"Selected chain: {value}, chain: {chain}")
 
         return chain
 
@@ -661,8 +677,8 @@ class SalpNavigateDomain(BaseScenario):
             # Get chain positions
             agent_pos = self.get_agent_chain_position()
             target_pos = self.get_target_chain_position()
-            collision_rew = self.compute_collision_reward(agent_pos)
-            print(f"Collision reward: {collision_rew}")
+            # collision_rew = self.compute_collision_reward(agent_pos)
+            # print(f"Collision reward: {collision_rew}")
 
             # Distance reward
             self.raw_dist_rew = calculate_distance_reward(agent_pos, target_pos)
@@ -704,9 +720,19 @@ class SalpNavigateDomain(BaseScenario):
             goal_reached_mask = self.raw_frech_rew < self.frechet_thresh
             goal_reached_rew += self.reached_goal_bonus * goal_reached_mask.int()
             print(f"Distance reward: {self.distance_rew}")
+            if self.wall_enabled:
+                # Check for collisions
+                has_collided = self.check_collisions()
+                collision_penalty = torch.zeros(
+                    self.world.batch_dim, device=self.device, dtype=torch.float32
+                )
+                collision_penalty += self.collision_penalty * has_collided
+                print(f"Collision penalty: {collision_penalty.mean().item():.4f}")
+            else: 
+                collision_penalty = 0.0
 
             # Mix all rewards
-            self.global_rew = self.distance_rew + goal_reached_rew + collision_rew
+            self.global_rew = self.distance_rew + goal_reached_rew + collision_penalty
 
         return self.global_rew
 
@@ -997,9 +1023,11 @@ class SalpNavigateDomain(BaseScenario):
             self.world.x_semidim, self.world.y_semidim
         )
 
+        has_collided = self.check_collisions()
+
         timeout = self.steps >= self.max_steps
 
-        return target_reached | out_of_bounds | timeout
+        return target_reached | out_of_bounds | has_collided | timeout
 
     def info(self, agent: Agent) -> Dict[str, Tensor]:
         chain_pos = self.get_agent_chain_position()
