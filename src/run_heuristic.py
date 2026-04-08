@@ -1,17 +1,16 @@
 #  Copyright (c) 2022-2024.
 #  ProrokLab (https://www.proroklab.org/)
 #  All rights reserved.
-import os
 import time
 import argparse
 import yaml
 import torch
 
-from vmas import make_env
 from vmas.simulator.utils import save_video
 from vmas.simulator.environment import Environment
 
-from environments.salp.create_env import create_env
+from environments.create_env import create_env
+from environments.types import EnvironmentEnum
 from pynput.keyboard import Listener
 from testing.manual_control import manual_control
 from pathlib import Path
@@ -19,15 +18,18 @@ from pathlib import Path
 
 def use_vmas_env(
     name: str,
+    batch_dir: Path,
+    env_name: str,
+    seed: int,
     env: Environment = None,
     render: bool = False,
     save_render: bool = False,
     n_envs: int = 1,
     n_steps: int = 100,
+    n_agents: int = 8,
     device: str = "cpu",
+    rotating_salps: bool = True,
     visualize_render: bool = True,
-    use_heuristic: bool = True,
-    **kwargs,
 ):
     """Example function to use a vmas environment
 
@@ -48,61 +50,36 @@ def use_vmas_env(
 
     frame_list = []  # For creating a gif
     init_time = time.time()
-    step = 0
-    n_agents = kwargs.pop("n_agents", 0)
-
     mc = manual_control(n_agents)
 
-    G_total = torch.zeros((n_agents, n_envs)).to(device)
-    G_list = []
-    obs_list = []
+    if env is None:
+        env = create_env(
+            batch_dir=batch_dir,
+            n_envs=n_envs,
+            device=device,
+            env_name=env_name,
+            seed=seed,
+            n_agents=n_agents,
+            training=False,
+            rotating_salps=rotating_salps,
+        )
 
     _ = env.reset()
 
     with Listener(on_press=mc.on_press, on_release=mc.on_release) as listener:
+        listener.join(timeout=0.1)
 
-        listener.join(timeout=1)
-
-        for step in range(n_steps):
-            step += 1
+        for _ in range(n_steps):
 
             actions = []
+            cmd_action = torch.tensor(mc.cmd_vel, dtype=torch.float32, device=device)
+            cmd_action = cmd_action.repeat(n_envs, 1)
 
-            for i, agent in enumerate(env.agents):
-
-                # Move one agent at a time
-                # if i == mc.controlled_agent:
-                #     cmd_action = mc.cmd_vel[:]  # + mc.join[:]
-                #     action = torch.tensor(cmd_action).repeat(n_envs, 1)
-                # else:
-                #     action = torch.tensor([0.0, 0.0]).repeat(n_envs, 1)
-
-                # Move all agents at the same time
-                cmd_action = mc.cmd_vel[-1]  # + mc.join[:]
-                action = torch.tensor(cmd_action).repeat(n_envs, 1)
-
+            for _agent in env.agents:
+                action = cmd_action.clone()
                 actions.append(action)
 
-            obs, rews, dones, info = env.step(actions)
-
-            obs_list.append(obs[0][0])
-
-            G_list.append(torch.stack([g[:n_envs] for g in rews], dim=0)[0])
-
-            G_total += torch.stack([g[:n_envs] for g in rews], dim=0)
-
-            G = torch.stack([g[:n_envs] for g in rews], dim=0)
-
-            print(obs)
-
-            # if any(tensor.any() for tensor in rews):
-            #     print("G")
-            #     print(G)
-
-            #     # print("Total G")
-            #     # print(G_total)
-
-            #     pass
+            env.step(actions)
 
             if render:
                 frame = env.render(
@@ -112,20 +89,6 @@ def use_vmas_env(
                 )
                 if save_render:
                     frame_list.append(frame)
-
-    # print("G List Agg")agents
-    # G_agg = torch.sum(torch.stack(G_list), dim=0)
-    # print(G_agg)
-    # print("D List Agg")
-    # D_agg = torch.sum(torch.stack(D_list), dim=0)
-    # print(torch.transpose(D_agg, dim0=0, dim1=1))
-    # print("Obs List")
-    # print(obs_list)
-
-    # print("G List")
-    # print(G_list)
-    # print("D List")
-    # print(D_list)
 
     total_time = time.time() - init_time
 
@@ -156,12 +119,20 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--environment",
-        default="",
+        default=EnvironmentEnum.VMAS_SALP_PASSAGE_CURR,
         help="Learning environment name",
         type=str,
     )
 
     parser.add_argument("--trial_id", default=0, help="Sets trial ID", type=int)
+    parser.add_argument("--n_agents", default=8, type=int)
+    parser.add_argument("--n_steps", default=1000, type=int)
+    parser.add_argument("--seed", default=0, type=int)
+    parser.add_argument(
+        "--rotating_salps",
+        action="store_true",
+        help="Enable turning with left/right keys.",
+    )
 
     args = vars(parser.parse_args())
 
@@ -176,35 +147,18 @@ if __name__ == "__main__":
     with open(str(env_file), "r") as file:
         env_config = yaml.safe_load(file)
 
-    # Environment dataw
-    map_size = env_config["map_size"]
-
-    # Agent data
-    n_agents = 6
-    agents_positions = [poi["position"]["coordinates"] for poi in env_config["agents"]]
-    lidar_range = [rover["observation_radius"] for rover in env_config["agents"]]
-
-    # POIs data
-    poi_positions = [poi["position"]["coordinates"] for poi in env_config["targets"]]
     n_envs = 1
 
     use_vmas_env(
-        name=f"{args["batch"]}_{n_agents}a",
-        env=create_env(
-            batch_dir=batch_dir,
-            n_envs=n_envs,
-            device="cpu",
-            benchmark=False,
-            n_agents=n_agents,
-            viewer_zoom=1.7,
-        ),
+        name=f"{args['batch']}_{args['n_agents']}a",
+        batch_dir=batch_dir,
+        env_name=args["environment"],
+        seed=args["seed"],
         render=True,
         save_render=False,
         device="cpu",
         n_envs=n_envs,
-        n_steps=100,
-        # kwargs
-        n_agents=n_agents,
-        targets_positions=poi_positions,
-        use_heuristic=False,
+        n_steps=args["n_steps"],
+        n_agents=args["n_agents"],
+        rotating_salps=args["rotating_salps"],
     )

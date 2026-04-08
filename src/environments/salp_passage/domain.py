@@ -704,7 +704,9 @@ class SalpPassageDomain(BaseScenario):
             dist_rew = calculate_distance_reward(agent_pos, target_pos)
             dist_shaping = dist_rew * self.distance_shaping_factor
             self.distance_rew = dist_shaping - self.distance_shaping
+            print(f"distance reward {self.distance_rew}")
             self.distance_shaping = dist_shaping
+            
 
             # Passage entrance reward
             self.pen_dist, _ = calculate_centroid_reward(
@@ -722,6 +724,7 @@ class SalpPassageDomain(BaseScenario):
                 self.pass_entrance_checkpoint | pass_entrance_mask
             )
             self.pass_entrance_rew *= ~self.pass_entrance_checkpoint
+            print(f"passage entrance reward {self.pass_entrance_rew}"  )
 
             # Passage exit reward
             self.pex_dist, _ = calculate_centroid_reward(

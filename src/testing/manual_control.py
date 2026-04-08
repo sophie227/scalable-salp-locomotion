@@ -32,11 +32,26 @@ class manual_control:
                     self.cmd_vel = [self.speed, -0.5]
                 case "a":
                     self.cmd_vel = [self.speed, 0.5]
+                case "8":
+                    self.cmd_vel = [self.speed, 0.0]
+                case "2":
+                    self.cmd_vel = [-self.speed, 0.0]
+                case "4":
+                    self.cmd_vel = [self.speed, self.angle]
+                case "6":
+                    self.cmd_vel = [self.speed, -self.angle]
                 case "j":
                     self.join = [0] if self.join[0] else [1]
 
         except AttributeError:
-            pass
+            if key == Key.up:
+                self.cmd_vel = [self.speed, 0.0]
+            elif key == Key.down:
+                self.cmd_vel = [-self.speed, 0.0]
+            elif key == Key.left:
+                self.cmd_vel = [self.speed, self.angle]
+            elif key == Key.right:
+                self.cmd_vel = [self.speed, -self.angle]
 
     def on_release(self, key):
 
