@@ -61,7 +61,13 @@ def run_curriculum(
 
         # if we’ve trained something already, load it
         if last_checkpoint is not None and last_checkpoint.is_file():
-            runner.trainer.learner.load(last_checkpoint)
+            try:
+                runner.trainer.learner.load(last_checkpoint)
+            except RuntimeError as exc:
+                print(
+                    "Skipping checkpoint load for this stage due to shape mismatch "
+                    f"(likely n_agents changed): {exc}"
+                )
 
 
         # run one full experiment (honours exp_cfg.params.n_total_steps, etc)

@@ -55,9 +55,9 @@ class SalpNavigateDomain(BaseScenario):
         self.agent_max_angle = 45
         self.agent_min_angle = -45
         self.u_multiplier = 1.0
-        self.target_radius = self.agent_radius / 2
+        self.target_radius = self.agent_radius /2
         self.frechet_thresh = 0.95
-        self.min_n_agents = 8
+        self.min_n_agents = 32
         # self.lidar_range = 0.8
         # self.lidar_rays = 2
 
@@ -163,11 +163,11 @@ class SalpNavigateDomain(BaseScenario):
             world.add_joint(joint)
             self.joints.append(joint)
 
-        # Optionally add a wall obstacle (controlled by env params)
-        self.wall_enabled = kwargs.pop("wall_enabled", True)
-        self.wall_position = kwargs.pop("wall_position", None)
-        self.wall_x_random = kwargs.pop("wall_x_random", True)
-        if self.wall_enabled:
+        # # Optionally add a wall obstacle (controlled by env params)
+        # self.wall_enabled = kwargs.pop("wall_enabled", False)
+        # self.wall_position = kwargs.pop("wall_position", None)
+        # self.wall_x_random = kwargs.pop("wall_x_random", True)
+        # if self.wall_enabled:
             # allow overriding size and position from kwargs/env_config
             # self.wall_length = kwargs.pop("wall_length", self.wall_length)
             # self.wall_width = kwargs.pop("wall_width", self.wall_width)
@@ -176,16 +176,16 @@ class SalpNavigateDomain(BaseScenario):
             # self.wall_position = (0, 0)  
             
 
-            self.walls = []
-            self.wall = Landmark(
-                name="wall",
-                movable=False,
-                shape=Box(1.5, 0.1),
-                color=(0.5, 0.5, 0.5),
-                collide=True,
-            )
-            world.add_landmark(self.wall)
-            self.walls.append(self.wall)
+            # self.walls = []
+            # self.wall = Landmark(
+            #     name="wall",
+            #     movable=False,
+            #     shape=Box(1.5, 0.1),
+            #     color=(0.5, 0.5, 0.5),
+            #     collide=True,
+            # )
+            # world.add_landmark(self.wall)
+            # self.walls.append(self.wall)
 
         # print("landmarks:", len(world.landmarks))
         # print("targets:", len(self.targets))
@@ -292,22 +292,22 @@ class SalpNavigateDomain(BaseScenario):
                 target.set_pos(pos, batch_index=None)
 
             # Set wall position if we have one configured
-            if self.wall_enabled:
-                if self.wall_position is not None:
-                    wall_pos = torch.tensor(self.wall_position, device=self.device)
-                elif self.wall_x_random:
-                    x_min = -1.0
-                    x_max = 1.0
-                    xs = torch.tensor(
-                        [random.uniform(x_min, x_max) for _ in range(self.world.batch_dim)],
-                        device=self.device,
-                    )
-                    ys = torch.zeros_like(xs)
-                    wall_pos = torch.stack([xs, ys], dim=1)
-                else:
-                    # default hard-coded coordinate; can also randomize later
-                    wall_pos = torch.tensor([0.0, 0.0], device=self.device)
-                self.wall.set_pos(wall_pos, batch_index=None)
+            # if self.wall_enabled:
+            #     if self.wall_position is not None:
+            #         wall_pos = torch.tensor(self.wall_position, device=self.device)
+            #     elif self.wall_x_random:
+            #         x_min = -1.0
+            #         x_max = 1.0
+            #         xs = torch.tensor(
+            #             [random.uniform(x_min, x_max) for _ in range(self.world.batch_dim)],
+            #             device=self.device,
+            #         )
+            #         ys = torch.zeros_like(xs)
+            #         wall_pos = torch.stack([xs, ys], dim=1)
+            #     else:
+            #         # default hard-coded coordinate; can also randomize later
+            #         wall_pos = torch.tensor([0.0, 0.0], device=self.device)
+            #     self.wall.set_pos(wall_pos, batch_index=None)
 
             for i, joint in enumerate(self.joints):
                 half_distance = (
@@ -454,69 +454,69 @@ class SalpNavigateDomain(BaseScenario):
         return chain
     
 
-    def compute_collision_reward(self):
-        if self.wall_enabled:
-            self.collision_rew.zero_()
-            # Agent-agent collisions
-            for i in range(len(self.world.agents)):
-                for j in range(i+1, len(self.world.agents)):
-                    a1 = self.world.agents[i]
-                    a2 = self.world.agents[j]
-                    mask = self.world.is_overlapping(a1, a2)
-                    self.collision_rew[mask] -= 5
-            # Agent-wall collisions
-            for a in self.world.agents:
-                for landmark in self.world.landmarks[self.n_agents:]:
-                    if landmark.collide:
-                        mask = self.world.is_overlapping(a, landmark)
-                        self.collision_rew[mask] -= 5
-            return self.collision_rew
-        else:
-            return torch.zeros_like(self.collision_rew)
-
-    # def create_target_chain(self, inner_r, outer_r, rotation_angle: float = 0.0):
-    #     x_coord, y_coord = generate_random_coordinate_within_annulus(
-    #         inner_r,
-    #         outer_r,
-    #     )
-
-
-    #     n_bends = random.choice([0, 1])
-    #     radius = random.uniform(0.05, 0.3)
-    #     radius_scaling = (
-    #         self.n_agents // 3
-    #     )  # 3 because it's the minimum amount of points for a curve
-
-    #     chain = rotate_points(
-    #         points=generate_bending_curve(
-    #             x0=x_coord,
-    #             y0=y_coord,
-    #             n_points=self.n_agents,
-    #             max_dist=self.agent_joint_length,
-    #             radius=radius * radius_scaling,
-    #             n_bends=n_bends,
-    #         ),
-    #         angle_rad=rotation_angle,
-    #     ).to(self.device)
-
-    #     return chain
+    # def compute_collision_reward(self):
+    #     if self.wall_enabled:
+    #         self.collision_rew.zero_()
+    #         # Agent-agent collisions
+    #         for i in range(len(self.world.agents)):
+    #             for j in range(i+1, len(self.world.agents)):
+    #                 a1 = self.world.agents[i]
+    #                 a2 = self.world.agents[j]
+    #                 mask = self.world.is_overlapping(a1, a2)
+    #                 self.collision_rew[mask] -= 5
+    #         # Agent-wall collisions
+    #         for a in self.world.agents:
+    #             for landmark in self.world.landmarks[self.n_agents:]:
+    #                 if landmark.collide:
+    #                     mask = self.world.is_overlapping(a, landmark)
+    #                     self.collision_rew[mask] -= 5
+    #         return self.collision_rew
+    #     else:
+    #         return torch.zeros_like(self.collision_rew)
 
     def create_target_chain(self, inner_r, outer_r, rotation_angle: float = 0.0):
-       
-        file_path = Path(__file__).resolve().parent.parent.parent/"target_chains.pkl"
-        if file_path is not None:
-            with open(file_path, "rb") as f:
-                chain_targets = pickle.load(f)
-        chain_dict = {f"chain_{i}": chain for i, chain in enumerate(chain_targets)}
+        x_coord, y_coord = generate_random_coordinate_within_annulus(
+            inner_r,
+            outer_r,
+        )
 
-        value = random.choice(list(chain_dict.keys()))
-        # value = list(chain_dict.keys())[0]
-        # print(f"Selected chain: {value}")
 
-        chain = chain_dict[value]
-        # print(f"Selected chain: {value}, chain: {chain}")
+        n_bends = random.choice([0, 1])
+        radius = random.uniform(0.05, 0.3)
+        radius_scaling = (
+            self.n_agents // 3
+        )  # 3 because it's the minimum amount of points for a curve
+
+        chain = rotate_points(
+            points=generate_bending_curve(
+                x0=x_coord,
+                y0=y_coord,
+                n_points=self.n_agents,
+                max_dist=self.agent_joint_length,
+                radius=radius * radius_scaling,
+                n_bends=n_bends,
+            ),
+            angle_rad=rotation_angle,
+        ).to(self.device)
 
         return chain
+
+    # def create_target_chain(self, inner_r, outer_r, rotation_angle: float = 0.0):
+       
+    #     file_path = Path(__file__).resolve().parent.parent.parent/"target_chains.pkl"
+    #     if file_path is not None:
+    #         with open(file_path, "rb") as f:
+    #             chain_targets = pickle.load(f)
+    #     chain_dict = {f"chain_{i}": chain for i, chain in enumerate(chain_targets)}
+
+    #     value = random.choice(list(chain_dict.keys()))
+    #     # value = list(chain_dict.keys())[0]
+    #     # print(f"Selected chain: {value}")
+
+    #     chain = chain_dict[value]
+    #     # print(f"Selected chain: {value}, chain: {chain}")
+
+    #     return chain
 
     def interpolate(
         self,
@@ -590,8 +590,8 @@ class SalpNavigateDomain(BaseScenario):
             # Get chain positions
             agent_pos = self.get_agent_chain_position()
             target_pos = self.get_target_chain_position()
-            collision_rew = self.compute_collision_reward()
-            print(f"Collision reward: {collision_rew}")
+            # collision_rew = self.compute_collision_reward()
+            # print(f"Collision reward: {collision_rew}")
 
             # Distance reward
             self.raw_dist_rew = calculate_distance_reward(agent_pos, target_pos)
@@ -634,7 +634,7 @@ class SalpNavigateDomain(BaseScenario):
             goal_reached_rew += self.reached_goal_bonus * goal_reached_mask.int()
 
             # Mix all rewards
-            self.global_rew = self.distance_rew + goal_reached_rew + collision_rew
+            self.global_rew = self.distance_rew + goal_reached_rew  # + collision_rew
 
         return self.global_rew
 

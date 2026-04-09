@@ -18,3 +18,4 @@ semi_trash*
 !yamls/salp_navigate_5a_wall_obs/mlp.yaml
 !yamls/salp_navigate_5a_wall_obs/gcn.yaml
 !yamls/salp_navigate_5a_5t/gcn.yaml
+!yamls/salp_navigate_varying_salp/gcn.yaml
