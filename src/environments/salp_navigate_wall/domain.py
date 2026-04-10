@@ -717,7 +717,7 @@ class SalpNavigateDomain(BaseScenario):
             goal_reached_rew = torch.zeros(
                 self.world.batch_dim, device=self.device, dtype=torch.float32
             )
-            goal_reached_mask = self.raw_frech_rew < self.frechet_thresh
+            goal_reached_mask = self.raw_frech_rew > self.frechet_thresh
             goal_reached_rew += self.reached_goal_bonus * goal_reached_mask.int()
             print(f"Distance reward: {self.distance_rew}")
             if self.wall_enabled:

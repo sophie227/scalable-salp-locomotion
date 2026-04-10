@@ -20,7 +20,7 @@ def view(
     dirs: dict,
     # View parameters
     n_envs=1,
-    n_agents_eval=5,
+    n_agents_eval=None,
     n_rollouts=10,
     rollout_length=512,
     seed=1025,
@@ -30,6 +30,8 @@ def view(
     params = Params(**exp_config.params)
 
     n_agents_train = env_config.n_agents
+    if n_agents_eval is None:
+        n_agents_eval = env_config.n_agents
 
     env = create_env(
         dirs["batch"],
@@ -59,7 +61,10 @@ def view(
         d_state,
         d_action,
     )
-    learner.load(dirs["models"] / "checkpoint")
+    model_path = dirs["models"] / "best_model"
+    if not model_path.is_file():
+        model_path = dirs["models"] / "checkpoint"
+    learner.load(model_path)
     learner.policy.eval()
 
     frame_list = []

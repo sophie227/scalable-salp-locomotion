@@ -359,18 +359,60 @@ class PPO:
     def save(self, checkpoint_path):
         torch.save(self.policy_old.state_dict(), checkpoint_path)
 
+    # def load(self, checkpoint_path):
+        # self.policy_old.load_state_dict(
+        #     torch.load(
+        #         checkpoint_path,
+        #         map_location=lambda storage, loc: storage,
+        #         weights_only=True,
+        #     )
+        # )
+        # self.policy.load_state_dict(
+        #     torch.load(
+        #         checkpoint_path,
+        #         map_location=lambda storage, loc: storage,
+        #         weights_only=True,
+        #     )
+        # )
+
     def load(self, checkpoint_path):
-        self.policy_old.load_state_dict(
-            torch.load(
-                checkpoint_path,
-                map_location=lambda storage, loc: storage,
-                weights_only=True,
-            )
+        checkpoint_state = torch.load(
+            checkpoint_path,
+            map_location=lambda storage, loc: storage,
+            weights_only=True,
         )
-        self.policy.load_state_dict(
-            torch.load(
-                checkpoint_path,
-                map_location=lambda storage, loc: storage,
-                weights_only=True,
+
+        current_state = self.policy.state_dict()
+        compatible_state = {}
+        skipped = []
+
+        for key, value in checkpoint_state.items():
+            if key not in current_state:
+                skipped.append(key)
+                continue
+
+            target = current_state[key]
+
+            if target.shape == value.shape:
+                compatible_state[key] = value
+                continue
+
+            if target.ndim == value.ndim:
+                resized = target.clone()
+                overlap = tuple(slice(0, min(a, b)) for a, b in zip(target.shape, value.shape))
+                resized[overlap] = value[overlap]
+                compatible_state[key] = resized
+                continue
+
+            skipped.append(key)
+
+        self.policy.load_state_dict(compatible_state, strict=False)
+        self.policy_old.load_state_dict(self.policy.state_dict())
+
+        if skipped:
+            print(
+                "Partial checkpoint load: skipped incompatible parameters "
+                f"({len(skipped)}), e.g. {skipped[:5]}"
             )
-        )
+    
+        

@@ -122,7 +122,6 @@ if __name__ == "__main__":
         case _:
             # use generic params for other cases
             from environments.types import EnvironmentParams
-
             base_env = EnvironmentParams(**env_dict)
     base_env.environment = args["environment"]
 
