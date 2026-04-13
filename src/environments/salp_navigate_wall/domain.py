@@ -687,7 +687,9 @@ class SalpNavigateDomain(BaseScenario):
             away_delta = torch.clamp(
                 self.distance_shaping - dist_shaping, min=0.0
             )  # >0 when moving away
-            near_target_mask = (-.2 > self.raw_dist_rew > -5.0).float()  # tune threshold
+            near_target_mask = (
+                (self.raw_dist_rew < -0.2) & (self.raw_dist_rew > -5.0)
+            ).float()  # tune threshold
             overshoot_penalty = 0.2 * away_delta * near_target_mask  # tune 0.2
             print(f"Overshoot penalty: {overshoot_penalty.mean().item():.4}")
             print(f"away_delta: {away_delta.mean().item():.4}, near_target_mask: {near_target_mask.mean().item():.4}")
