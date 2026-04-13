@@ -1,4 +1,4 @@
-device: cpu
+device: cuda
 model: gcn
 params:
   batch_size: 5120

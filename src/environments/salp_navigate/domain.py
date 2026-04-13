@@ -63,7 +63,7 @@ class SalpNavigateDomain(BaseScenario):
 
 
 
-        self.viewer_zoom = kwargs.pop("viewer_zoom", 2.0)
+        self.viewer_zoom = kwargs.pop("viewer_zoom", 2.5)
 
         # Agents
         self.n_agents = kwargs.pop("n_agents", self.min_n_agents)

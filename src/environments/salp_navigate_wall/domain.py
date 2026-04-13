@@ -99,7 +99,7 @@ class SalpNavigateDomain(BaseScenario):
         self.frechet_shaping_factor = 1.0
         self.centroid_shaping_factor = 1.0
         self.curvature_shaping_factor = 1.0
-        self.distance_shaping_factor = 1.0
+        self.distance_shaping_factor = 2.0
 
         # self.collision_reward_value = kwargs.pop("collision_reward", -2.0)
         self.min_collision_distance = .04
@@ -683,7 +683,16 @@ class SalpNavigateDomain(BaseScenario):
             # Distance reward
             self.raw_dist_rew = calculate_distance_reward(agent_pos, target_pos)
             dist_shaping = self.raw_dist_rew * self.distance_shaping_factor
-            self.distance_rew = dist_shaping - self.distance_shaping
+
+            away_delta = torch.clamp(
+                self.distance_shaping - dist_shaping, min=0.0
+            )  # >0 when moving away
+            near_target_mask = (-.2 > self.raw_dist_rew > -5.0).float()  # tune threshold
+            overshoot_penalty = 0.2 * away_delta * near_target_mask  # tune 0.2
+            print(f"Overshoot penalty: {overshoot_penalty.mean().item():.4}")
+            print(f"away_delta: {away_delta.mean().item():.4}, near_target_mask: {near_target_mask.mean().item():.4}")
+            # Absolute closeness reward in (0, 1]: increases as distance decreases.
+            self.distance_rew = torch.exp(dist_shaping)
             self.distance_shaping = dist_shaping
             
             # Frechet reward
@@ -732,7 +741,13 @@ class SalpNavigateDomain(BaseScenario):
                 collision_penalty = 0.0
 
             # Mix all rewards
-            self.global_rew = self.distance_rew + goal_reached_rew + collision_penalty
+            self.global_rew = (
+                self.distance_rew
+                + goal_reached_rew
+                + collision_penalty
+                - overshoot_penalty
+            )
+        print(f"Global reward: {self.global_rew.mean().item():.4f}")
 
         return self.global_rew
 
