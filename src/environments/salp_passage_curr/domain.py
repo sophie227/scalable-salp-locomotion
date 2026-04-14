@@ -60,7 +60,7 @@ class SalpPassageDomain(BaseScenario):
         self.lidar_rays = 2
         self.open_passage_y = 100
 
-        self.goal_reached_bonus = 1
+        self.goal_reached_bonus = 5.0
         self.passage_entrance_bonus = .5
         self.passage_exit_bonus = .5
         self.collision_penalty = -1
@@ -715,9 +715,11 @@ class SalpPassageDomain(BaseScenario):
 
             # Distance reward
             dist_rew = calculate_distance_reward(agent_pos, target_pos)
+            print(f"raw distance reward: {dist_rew}")
             dist_shaping = dist_rew * self.distance_shaping_factor
             # print(f"dr {dist_shaping}")
             self.distance_rew = dist_shaping - self.distance_shaping
+            # self.distance_rew = torch.exp(dist_shaping) 
             # print(f"distance reward {self.distance_rew}")
             self.distance_shaping = dist_shaping
             # print(f"distance shaping {self.distance_shaping}")
@@ -730,10 +732,10 @@ class SalpPassageDomain(BaseScenario):
             # Signed distance to each threshold: negative = below, 0 = at line
             self.pen_dist = centroid_y - self.pass_entrance_y_threshold
             self.pex_dist = centroid_y - self.pass_exit_y_threshold
-            print(f"pen_dist: {self.pen_dist}")
-            print(f"pex_dist: {self.pex_dist}")
-            print(f"passage_entrance_shaping: {self.passage_entrance_shaping}")
-            print(f"passage_exit_shaping: {self.passage_exit_shaping}")
+            # print(f"pen_dist: {self.pen_dist}")
+            # print(f"pex_dist: {self.pex_dist}")
+            # print(f"passage_entrance_shaping: {self.passage_entrance_shaping}")
+            # print(f"passage_exit_shaping: {self.passage_exit_shaping}")
 
             # Entrance: positive-only progress toward y = -0.2, frozen once crossed
             entrance_progress = torch.clamp(

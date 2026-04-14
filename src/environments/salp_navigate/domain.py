@@ -192,7 +192,7 @@ class SalpNavigateDomain(BaseScenario):
         # print("walls:", len(self.walls))
 
         # Initialize reward tensors
-        self.reached_goal_bonus = 1
+        self.reached_goal_bonus = 5.0
         self.global_rew = torch.zeros(batch_dim, device=device, dtype=torch.float32)
         self.centroid_rew = self.global_rew.clone()
         self.frechet_rew = self.global_rew.clone()
@@ -214,7 +214,7 @@ class SalpNavigateDomain(BaseScenario):
         world.zero_grad()
 
         # Step counter
-        self.max_steps = 512
+        self.max_steps = 1000
         self.steps = torch.zeros((batch_dim), device=device, dtype=torch.float32)
 
         return world
@@ -634,6 +634,7 @@ class SalpNavigateDomain(BaseScenario):
             goal_reached_rew += self.reached_goal_bonus * goal_reached_mask.int()
 
             # Mix all rewards
+            print(f"Distance reward: {self.distance_rew}")
             self.global_rew = self.distance_rew + goal_reached_rew  # + collision_rew
 
         return self.global_rew
