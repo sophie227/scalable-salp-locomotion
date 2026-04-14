@@ -56,7 +56,7 @@ class SalpNavigateDomain(BaseScenario):
         self.agent_min_angle = -45
         self.u_multiplier = 1.0
         self.target_radius = self.agent_radius /2
-        self.frechet_thresh = 0.95
+        self.frechet_thresh = 0.9
         self.min_n_agents = 32
         # self.lidar_range = 0.8
         # self.lidar_rays = 2
