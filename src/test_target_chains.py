@@ -12,11 +12,11 @@ import random
 
 def shift_chain_to_negative_y(chain: torch.Tensor, margin: float = 1e-1) -> torch.Tensor:
     max_y = chain[:, 1].max()
-    if max_y < -0.25:
+    if max_y < -0.2:
         return chain
 
     shifted_chain = chain.clone()
-    shifted_chain[:, 1] -= max_y + random.uniform(.75, 1.5) 
+    shifted_chain[:, 1] -= max_y + random.uniform(.1, .5) 
     shifted_x = shifted_chain.clone()
     shifted_x[:, 0] -= random.uniform(-0.5, 0.5)  # Shift left by random margin
 
@@ -32,9 +32,9 @@ domain = SalpNavigateDomain()
 world = domain.make_world(batch_dim=batch_dim, device=device, n_agents=n_agents)
 
 # Parameters for creating target chains (from reset_world_at)
-target_inner_radius = domain.world_y_dim * (0.15 * 3)
+target_inner_radius = 0.2
 target_outer_radius = (
-    target_inner_radius + domain.n_agents * domain.agent_joint_length
+domain.world_y_dim 
 )
 
 # Generate 5 unique target chains
@@ -50,7 +50,7 @@ while len(target_chains) < 5:
     if any(torch.allclose(chain, existing) for existing in target_chains):
         max_x = chain[:, 0].max()
         shifted_x_chain = chain.clone()
-        shifted_x_chain[:, 0] -= max_x + random.uniform(-.5, 0.5)  # Shift left by max_x + random margin
+        shifted_x_chain[:, 0] -= max_x + random.uniform(-.5, 0.2)  # Shift left by max_x + random margin
         
         
     target_chains.append(chain.cpu())
@@ -60,7 +60,7 @@ while len(target_chains) < 5:
     )
 
 # Save to pkl file
-output_file = "target_chains_2.pkl"
+output_file = "target_chains_3.pkl"
 with open(output_file, "wb") as f:
     pickle.dump(target_chains, f)
 

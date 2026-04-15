@@ -589,14 +589,14 @@ class SalpNavigateDomain(BaseScenario):
 
     def create_target_chain(self, inner_r, outer_r, rotation_angle: float = 0.0):
        
-        file_path = Path(__file__).resolve().parent.parent.parent/"target_chains_2.pkl"
+        file_path = Path(__file__).resolve().parent.parent.parent/"target_chains_3.pkl"
         if file_path is not None:
             with open(file_path, "rb") as f:
                 chain_targets = pickle.load(f)
         chain_dict = {f"chain_{i}": chain for i, chain in enumerate(chain_targets)}
 
         value = random.choice(list(chain_dict.keys()))
-        # value = list(chain_dict.keys())[4]
+        # value = list(chain_dict.keys())[0]
         # print(f"Selected chain: {value}")
         # print(f"Available chains: {list(chain_dict.keys())}")
 
@@ -735,6 +735,7 @@ class SalpNavigateDomain(BaseScenario):
 
             # Get reward for reaching the goal
             self.raw_frech_rew = f_rew
+            print(f"Raw Frechet reward: {self.raw_frech_rew}")
             goal_reached_rew = torch.zeros(
                 self.world.batch_dim, device=self.device, dtype=torch.float32
             )

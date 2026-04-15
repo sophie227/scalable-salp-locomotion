@@ -204,7 +204,7 @@ class SalpPassageDomain(BaseScenario):
             world.add_landmark(passage)
 
         # Initialize reward tensors
-        self.reached_goal_bonus = 1
+        self.reached_goal_bonus = 5.0
         self.global_rew = torch.zeros(batch_dim, device=device, dtype=torch.float32)
         self.centroid_rew = self.global_rew.clone()
         self.pass_entrance_rew = self.global_rew.clone()

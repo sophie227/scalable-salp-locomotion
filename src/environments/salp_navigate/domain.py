@@ -229,15 +229,17 @@ class SalpNavigateDomain(BaseScenario):
             target_outer_radius = (
                 target_inner_radius + self.n_agents * self.agent_joint_length
             )
+            # target_outer_radius = 1.5
         else:
             target_inner_radius = (
                 self.train_world_x_dim * 1.25 * (agent_outer_radius + 0.5)
             )
-            target_outer_radius = (
-                target_inner_radius
-                + self.n_agents * self.agent_joint_length * (64 / self.n_agents)
-            )
-
+            # target_outer_radius = (
+            #     target_inner_radius
+            #     + self.n_agents * self.agent_joint_length * (64 / self.n_agents)
+            # )
+            target_outer_radius = 3.5
+        print(f"Target inner radius: {target_inner_radius}, Target outer radius: {target_outer_radius}")
         # Rotation params
         agent_rotation_angles = [
             random.uniform(0, 2 * math.pi) for _ in range(self.world.batch_dim)

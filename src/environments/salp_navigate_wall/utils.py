@@ -764,7 +764,7 @@ def generate_random_coordinate_within_annulus(
 
     # Generate random radius between inner and outer radius
     # Use sqrt for uniform distribution in 2D space
-    r_squared = random.uniform(inner_radius**2, outer_radius**2)
+    r_squared = random.uniform(inner_radius**2, outer_radius)
     radius = math.sqrt(r_squared)
 
     # Calculate coordinates
