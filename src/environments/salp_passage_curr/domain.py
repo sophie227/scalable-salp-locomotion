@@ -720,6 +720,8 @@ class SalpPassageDomain(BaseScenario):
             dist_shaping = dist_rew * self.distance_shaping_factor
             # print(f"dr {dist_shaping}")
             self.distance_rew = dist_shaping - self.distance_shaping
+            self.distance_rew = torch.where(self.distance_rew < 0, self.distance_rew * 10, self.distance_rew )
+            print(f"distance reward: {self.distance_rew}")
             # self.distance_rew = torch.exp(dist_shaping) 
             # print(f"distance reward {self.distance_rew}")
             self.distance_shaping = dist_shaping
@@ -810,7 +812,7 @@ class SalpPassageDomain(BaseScenario):
                 + goal_reached_rew
                 + self.pass_exit_rew
                 + self.pass_entrance_rew
-                + raw_distance_reward
+                # + raw_distance_reward
             )
 
         print(f"Total reward: {self.global_rew.mean().item():.4f}")
