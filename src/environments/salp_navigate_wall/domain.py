@@ -589,7 +589,7 @@ class SalpNavigateDomain(BaseScenario):
 
     def create_target_chain(self, inner_r, outer_r, rotation_angle: float = 0.0):
        
-        file_path = Path(__file__).resolve().parent.parent.parent/"target_chains_3.pkl"
+        file_path = Path(__file__).resolve().parent.parent.parent/"target_chains_2.pkl"
         if file_path is not None:
             with open(file_path, "rb") as f:
                 chain_targets = pickle.load(f)
