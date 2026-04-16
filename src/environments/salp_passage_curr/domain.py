@@ -715,7 +715,8 @@ class SalpPassageDomain(BaseScenario):
 
             # Distance reward
             dist_rew = calculate_distance_reward(agent_pos, target_pos)
-            print(f"raw distance reward: {dist_rew}")
+            raw_distance_reward = -1 * dist_rew
+            print(f"raw distance reward: {raw_distance_reward}")
             dist_shaping = dist_rew * self.distance_shaping_factor
             # print(f"dr {dist_shaping}")
             self.distance_rew = dist_shaping - self.distance_shaping
@@ -809,6 +810,7 @@ class SalpPassageDomain(BaseScenario):
                 + goal_reached_rew
                 + self.pass_exit_rew
                 + self.pass_entrance_rew
+                + raw_distance_reward
             )
 
         print(f"Total reward: {self.global_rew.mean().item():.4f}")

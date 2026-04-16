@@ -683,6 +683,8 @@ class SalpNavigateDomain(BaseScenario):
             # Distance reward
             self.raw_dist_rew = calculate_distance_reward(agent_pos, target_pos)
             dist_shaping = self.raw_dist_rew * self.distance_shaping_factor
+            raw_distance_reward = -1 * self.raw_dist_rew
+            print(f"raw distance reward: {raw_distance_reward}")
 
             away_delta = torch.clamp(
                 self.distance_shaping - dist_shaping, min=0.0
@@ -758,6 +760,7 @@ class SalpNavigateDomain(BaseScenario):
                 self.distance_rew
                 + goal_reached_rew
                 + collision_penalty
+                + raw_distance_reward
                 # - overshoot_penalty
             )
         print(f"Global reward: {self.global_rew.mean().item():.4f}")
