@@ -118,7 +118,7 @@ class SalpPassageDomain(BaseScenario):
         self.passage_entrance_factor = 1.0
         self.passage_exit_factor = 1.0
         self.curvature_shaping_factor = 1.0
-        self.distance_shaping_factor = 1.0
+        self.prev_dist_factor = 1.0
 
         ScenarioUtils.check_kwargs_consumed(kwargs)
 
@@ -401,7 +401,7 @@ class SalpPassageDomain(BaseScenario):
                 self.pass_exit_y_threshold - chain_centroid_y, min=0.0
             )
             self.curvature_shaping = curvature * self.curvature_shaping_factor
-            self.distance_shaping = dist_rew * self.distance_shaping_factor
+            self.prev_dist = dist_rew * self.prev_dist_factor
 
         else:
             # Reset steps
@@ -528,8 +528,8 @@ class SalpPassageDomain(BaseScenario):
             self.curvature_shaping[env_index] = (
                 curvature[env_index] * self.curvature_shaping_factor
             )
-            self.distance_shaping[env_index] = (
-                dist_rew[env_index] * self.distance_shaping_factor
+            self.prev_dist[env_index] = (
+                dist_rew[env_index] * self.prev_dist_factor
             )
 
     def is_out_of_bounds(self, x_coord, y_coord):
@@ -717,15 +717,15 @@ class SalpPassageDomain(BaseScenario):
             dist_rew = calculate_distance_reward(agent_pos, target_pos)
             raw_distance_reward = -1 * dist_rew
             print(f"raw distance reward: {raw_distance_reward}")
-            dist_shaping = dist_rew * self.distance_shaping_factor
-            # print(f"dr {dist_shaping}")
-            self.distance_rew = dist_shaping - self.distance_shaping
+            current_dist = dist_rew * self.prev_dist_factor
+            # print(f"dr {current_dist}")
+            self.distance_rew = current_dist - self.prev_dist
             self.distance_rew = torch.where(self.distance_rew < 0, self.distance_rew * 10, self.distance_rew )
             print(f"distance reward: {self.distance_rew}")
-            # self.distance_rew = torch.exp(dist_shaping) 
+            # self.distance_rew = torch.exp(current_dist) 
             # print(f"distance reward {self.distance_rew}")
-            self.distance_shaping = dist_shaping
-            # print(f"distance shaping {self.distance_shaping}")
+            self.prev_dist = current_dist
+            # print(f"distance shaping {self.prev_dist}")
             
 
             # Passage entrance reward

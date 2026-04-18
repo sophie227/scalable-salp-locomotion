@@ -96,7 +96,7 @@ class SalpNavigateLidarDomain(BaseScenario):
         self.frechet_shaping_factor = 1.0
         self.centroid_shaping_factor = 1.0
         self.curvature_shaping_factor = 1.0
-        self.distance_shaping_factor = 1.0
+        self.prev_dist_factor = 1.0
         self.crumbling_penalty_factor = 0.0  # Small penalty for chain folding
 
         self.collision_reward_value = kwargs.pop("collision_reward", -3)
@@ -341,7 +341,7 @@ class SalpNavigateLidarDomain(BaseScenario):
             self.frechet_shaping = f_dist * self.frechet_shaping_factor
             self.centroid_shaping = c_dist * self.centroid_shaping_factor
             self.curvature_shaping = curvature * self.curvature_shaping_factor
-            self.distance_shaping = dist_rew * self.distance_shaping_factor
+            self.prev_dist = dist_rew * self.prev_dist_factor
 
         else:
             # Reset steps
@@ -414,8 +414,8 @@ class SalpNavigateLidarDomain(BaseScenario):
             self.curvature_shaping[env_index] = (
                 curvature[env_index] * self.curvature_shaping_factor
             )
-            self.distance_shaping[env_index] = (
-                dist_rew[env_index] * self.distance_shaping_factor
+            self.prev_dist[env_index] = (
+                dist_rew[env_index] * self.prev_dist_factor
             )
 
     def is_out_of_bounds(self, x_coord, y_coord):
@@ -613,9 +613,9 @@ class SalpNavigateLidarDomain(BaseScenario):
             print("Crumbling penalty:", crumbling_penalty)
             # Distance reward
             self.raw_dist_rew = calculate_distance_reward(agent_pos, target_pos)
-            dist_shaping = self.raw_dist_rew * self.distance_shaping_factor
-            self.distance_rew = dist_shaping - self.distance_shaping
-            self.distance_shaping = dist_shaping
+            current_dist = self.raw_dist_rew * self.prev_dist_factor
+            self.distance_rew = current_dist - self.prev_dist
+            self.prev_dist = current_dist
 
             # Frechet reward
 

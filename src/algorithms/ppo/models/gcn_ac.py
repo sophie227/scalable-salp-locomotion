@@ -28,14 +28,17 @@ class ActorCritic(torch.nn.Module):
         self.device = device
         self.graph_type = graph_type
 
+        # self.log_action_std = nn.Parameter(
+        #     torch.ones(
+        #         d_action * n_agents_train,
+        #         requires_grad=True,
+        #         device=device,
+        #     )
+        #     * -0.5
+        # )
         self.log_action_std = nn.Parameter(
-            torch.ones(
-                d_action * n_agents_train,
-                requires_grad=True,
-                device=device,
-            )
-            * -0.5
-        )
+         torch.ones(d_action, device=device) * -0.5
+)
 
         # GCN layers instead of GAT
         self.gcn1 = GCNConv(d_state, hidden_dim)
@@ -98,8 +101,13 @@ class ActorCritic(torch.nn.Module):
             _, value = self.get_action_and_value(state)
             return value
 
+    # def get_action_dist(self, action_mean):
+    #     action_std = torch.exp(self.log_action_std[: action_mean.shape[-1]])
+    #     return Normal(action_mean, action_std)
+
     def get_action_dist(self, action_mean):
-        action_std = torch.exp(self.log_action_std[: action_mean.shape[-1]])
+        action_std = torch.exp(self.log_action_std).unsqueeze(0)
+        action_std = action_std.expand_as(action_mean)
         return Normal(action_mean, action_std)
 
     def act(self, state, deterministic=False):
@@ -149,8 +157,8 @@ if __name__ == "__main__":
     graph_type = "chain"
 
     model = ActorCritic(
-        n_agents_train=32,
-        n_agents_eval=32,
+        n_agents_train=8,
+        n_agents_eval=8,
         d_state=24,
         d_action=2,
         device=device,

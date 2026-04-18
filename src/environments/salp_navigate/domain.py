@@ -98,7 +98,7 @@ class SalpNavigateDomain(BaseScenario):
         self.frechet_shaping_factor = 1.0
         self.centroid_shaping_factor = 1.0
         self.curvature_shaping_factor = 1.0
-        self.distance_shaping_factor = 1.0
+        self.prev_dist_factor = 1.0
 
         # self.collision_reward_value = kwargs.pop("collision_reward", -2.0)
         self.min_collision_distance = 1.0
@@ -198,7 +198,7 @@ class SalpNavigateDomain(BaseScenario):
         self.frechet_rew = self.global_rew.clone()
         self.curvature_rew = self.global_rew.clone()
         self.distance_rew = self.global_rew.clone()
-        self.collision_rew = self.global_rew.clone()
+        # self.collision_rew = self.global_rew.clone()
 
         # Initialize memory
         self.internal_angles_prev = torch.zeros(
@@ -342,7 +342,7 @@ class SalpNavigateDomain(BaseScenario):
             self.frechet_shaping = f_dist * self.frechet_shaping_factor
             self.centroid_shaping = c_dist * self.centroid_shaping_factor
             self.curvature_shaping = curvature * self.curvature_shaping_factor
-            self.distance_shaping = dist_rew * self.distance_shaping_factor
+            self.prev_dist = dist_rew * self.prev_dist_factor
 
         else:
             # Reset steps
@@ -415,8 +415,8 @@ class SalpNavigateDomain(BaseScenario):
             self.curvature_shaping[env_index] = (
                 curvature[env_index] * self.curvature_shaping_factor
             )
-            self.distance_shaping[env_index] = (
-                dist_rew[env_index] * self.distance_shaping_factor
+            self.prev_dist[env_index] = (
+                dist_rew[env_index] * self.prev_dist_factor
             )
 
     def is_out_of_bounds(self, x_coord, y_coord):
@@ -567,7 +567,8 @@ class SalpNavigateDomain(BaseScenario):
         agent.state.force = torch.stack((x, y), dim=-1)
 
     def get_targets(self):
-         
+        
+                
         return self.targets
 
     def get_agent_chain_position(self):
@@ -597,9 +598,9 @@ class SalpNavigateDomain(BaseScenario):
 
             # Distance reward
             self.raw_dist_rew = calculate_distance_reward(agent_pos, target_pos)
-            dist_shaping = self.raw_dist_rew * self.distance_shaping_factor
-            self.distance_rew = dist_shaping - self.distance_shaping
-            self.distance_shaping = dist_shaping
+            current_dist = self.raw_dist_rew * self.prev_dist_factor
+            self.distance_rew = current_dist - self.prev_dist
+            self.prev_dist = current_dist
 
             # Frechet reward
 
@@ -637,7 +638,7 @@ class SalpNavigateDomain(BaseScenario):
 
             # Mix all rewards
             print(f"Distance reward: {self.distance_rew}")
-            self.global_rew = self.distance_rew + goal_reached_rew  # + collision_rew
+            self.global_rew = self.distance_rew + goal_reached_rew  
 
         return self.global_rew
 

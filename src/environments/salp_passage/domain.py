@@ -115,7 +115,7 @@ class SalpPassageDomain(BaseScenario):
         self.passage_entrance_factor = 1.0
         self.passage_exit_factor = 1.0
         self.curvature_shaping_factor = 1.0
-        self.distance_shaping_factor = 1.0
+        self.prev_dist_factor = 1.0
 
         ScenarioUtils.check_kwargs_consumed(kwargs)
 
@@ -390,7 +390,7 @@ class SalpPassageDomain(BaseScenario):
             self.passage_entrance_shaping = pen_dist * self.passage_entrance_factor
             self.passage_exit_shaping = pex_dist * self.passage_exit_factor
             self.curvature_shaping = curvature * self.curvature_shaping_factor
-            self.distance_shaping = dist_rew * self.distance_shaping_factor
+            self.prev_dist = dist_rew * self.prev_dist_factor
 
         else:
             # Reset steps
@@ -515,8 +515,8 @@ class SalpPassageDomain(BaseScenario):
             self.curvature_shaping[env_index] = (
                 curvature[env_index] * self.curvature_shaping_factor
             )
-            self.distance_shaping[env_index] = (
-                dist_rew[env_index] * self.distance_shaping_factor
+            self.prev_dist[env_index] = (
+                dist_rew[env_index] * self.prev_dist_factor
             )
 
     def is_out_of_bounds(self, x_coord, y_coord):
@@ -702,10 +702,10 @@ class SalpPassageDomain(BaseScenario):
 
             # Distance reward
             dist_rew = calculate_distance_reward(agent_pos, target_pos)
-            dist_shaping = dist_rew * self.distance_shaping_factor
-            self.distance_rew = dist_shaping - self.distance_shaping
+            current_dist = dist_rew * self.prev_dist_factor
+            self.distance_rew = current_dist - self.prev_dist
             print(f"distance reward {self.distance_rew}")
-            self.distance_shaping = dist_shaping
+            self.prev_dist = current_dist
             
 
             # Passage entrance reward
