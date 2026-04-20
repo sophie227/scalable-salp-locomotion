@@ -28,17 +28,17 @@ class ActorCritic(torch.nn.Module):
         self.device = device
         self.graph_type = graph_type
 
-        self.log_action_std = nn.Parameter(
-            torch.ones(
-                d_action * n_agents_train,
-                requires_grad=True,
-                device=device,
-            )
-            * -0.5
-        )
         # self.log_action_std = nn.Parameter(
-        #  torch.ones(64, device=device) * -0.5
-# )
+        #     torch.ones(
+        #         d_action * n_agents_train,
+        #         requires_grad=True,
+        #         device=device,
+        #     )
+        #     * -0.5
+        # )
+        self.log_action_std = nn.Parameter(
+         torch.ones(d_action, device=device) * -0.5
+)
 
         # GCN layers instead of GAT
         self.gcn1 = GCNConv(d_state, hidden_dim)
@@ -101,20 +101,13 @@ class ActorCritic(torch.nn.Module):
             _, value = self.get_action_and_value(state)
             return value
 
-    def get_action_dist(self, action_mean):
-        action_std = torch.exp(self.log_action_std[: action_mean.shape[-1]])
-        return Normal(action_mean, action_std)
-
     # def get_action_dist(self, action_mean):
-    #     action_std = torch.exp(self.log_action_std).unsqueeze(0)
-    #     action_std = action_std.expand_as(action_mean)
+    #     action_std = torch.exp(self.log_action_std[: action_mean.shape[-1]])
     #     return Normal(action_mean, action_std)
-    
-    # def get_action_dist(self, action_mean):
-    #     action_dim = action_mean.shape[-1]
-    #     action_std = torch.exp(self.log_action_std[:action_dim])
-    #     action_std = action_std.unsqueeze(0).expand_as(action_mean)
 
+    def get_action_dist(self, action_mean):
+        action_std = torch.exp(self.log_action_std).unsqueeze(0)
+        action_std = action_std.expand_as(action_mean)
         return Normal(action_mean, action_std)
 
     def act(self, state, deterministic=False):

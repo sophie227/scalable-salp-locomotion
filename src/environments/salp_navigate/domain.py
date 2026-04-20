@@ -234,11 +234,11 @@ class SalpNavigateDomain(BaseScenario):
             target_inner_radius = (
                 self.train_world_x_dim * 1.25 * (agent_outer_radius + 0.5)
             )
-            # target_outer_radius = (
-            #     target_inner_radius
-            #     + self.n_agents * self.agent_joint_length * (64 / self.n_agents)
-            # )
-            target_outer_radius = 3.5
+            target_outer_radius = (
+                target_inner_radius
+                + self.n_agents * self.agent_joint_length * (64 / self.n_agents)
+            )
+            # target_outer_radius = 3.5
         print(f"Target inner radius: {target_inner_radius}, Target outer radius: {target_outer_radius}")
         # Rotation params
         agent_rotation_angles = [
@@ -637,8 +637,9 @@ class SalpNavigateDomain(BaseScenario):
             goal_reached_rew += self.reached_goal_bonus * goal_reached_mask.int()
 
             # Mix all rewards
-            print(f"Distance reward: {self.distance_rew}")
+            # print(f"Distance reward: {self.distance_rew}")
             self.global_rew = self.distance_rew + goal_reached_rew  
+            print(f"Global reward: {self.global_rew}")
 
         return self.global_rew
 

@@ -134,6 +134,9 @@ class PPO:
                 )
             case "gcn":
                 from algorithms.ppo.models.gcn_ac import ActorCritic
+
+            case "gcn_dim":
+                from algorithms.ppo.models.gcn_ac_dim import ActorCritic
             case "gat":
                 from algorithms.ppo.models.gat_ac import ActorCritic
             case "graph_transformer":
