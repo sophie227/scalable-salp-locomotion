@@ -60,7 +60,7 @@ class SalpPassageDomain(BaseScenario):
         self.lidar_rays = 2
         self.open_passage_y = 100
 
-        self.goal_reached_bonus = 5.0
+        self.goal_reached_bonus = 1.0
         self.passage_entrance_bonus = .5
         self.passage_exit_bonus = .5
         self.collision_penalty = -1
