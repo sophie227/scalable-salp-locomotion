@@ -37,7 +37,7 @@ class ActorCritic(torch.nn.Module):
         #     * -0.5
         # )
         self.log_action_std = nn.Parameter(
-         torch.ones(d_action, device=device) * -0.5
+         torch.ones(64, device=device) * -0.5
 )
 
         # GCN layers instead of GAT
@@ -105,9 +105,16 @@ class ActorCritic(torch.nn.Module):
     #     action_std = torch.exp(self.log_action_std[: action_mean.shape[-1]])
     #     return Normal(action_mean, action_std)
 
+    # def get_action_dist(self, action_mean):
+    #     action_std = torch.exp(self.log_action_std).unsqueeze(0)
+    #     action_std = action_std.expand_as(action_mean)
+    #     return Normal(action_mean, action_std)
+    
     def get_action_dist(self, action_mean):
-        action_std = torch.exp(self.log_action_std).unsqueeze(0)
-        action_std = action_std.expand_as(action_mean)
+        action_dim = action_mean.shape[-1]
+        action_std = torch.exp(self.log_action_std[:action_dim])
+        action_std = action_std.unsqueeze(0).expand_as(action_mean)
+
         return Normal(action_mean, action_std)
 
     def act(self, state, deterministic=False):
