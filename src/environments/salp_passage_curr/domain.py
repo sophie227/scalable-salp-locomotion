@@ -12,8 +12,8 @@ from vmas.simulator.scenario import BaseScenario
 from vmas.simulator.utils import ScenarioUtils
 from vmas.simulator.sensors import Lidar
 
-from environments.salp_passage.dynamics import SalpDynamics
-from environments.salp_passage.utils import (
+from environments.salp_passage_curr.dynamics import SalpDynamics
+from environments.salp_passage_curr.utils import (
     COLOR_LIST,
     COLOR_MAP,
     generate_target_points,
@@ -28,13 +28,13 @@ from environments.salp_passage.utils import (
     get_neighbor_angles,
     binary_encode,
 )
-from environments.salp_passage.rewards import (
+from environments.salp_passage_curr.rewards import (
     calculate_centroid_reward,
     calculate_curvature_reward,
     calculate_distance_reward,
     calculate_frechet_reward,
 )
-from environments.salp_passage.types import GlobalObservation
+from environments.salp_passage_curr.types import GlobalObservation
 import random
 import math
 from copy import deepcopy
@@ -570,6 +570,8 @@ class SalpPassageDomain(BaseScenario):
         return chain
 
     def create_target_chain(self, rotation_angle: float = 0.0):
+        if hasattr(self, "fixed_target_chain"):
+            return self.fixed_target_chain.clone()
 
         x_coord, y_coord = generate_random_coordinate_coordinate_inside_box(
             0.0,
@@ -596,7 +598,9 @@ class SalpPassageDomain(BaseScenario):
             angle_rad=rotation_angle,
         ).to(self.device)
 
-        return chain
+        self.fixed_target_chain = chain.clone()
+
+        return self.fixed_target_chain
 
     def interpolate(
         self,
