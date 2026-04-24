@@ -24,13 +24,13 @@ from environments.salp_passage_curr.utils import (
     calculate_moment,
     internal_angles_xy,
     wrap_to_pi,
-    menger_curvature,
+    # menger_curvature,
     get_neighbor_angles,
     binary_encode,
 )
 from environments.salp_passage_curr.rewards import (
     calculate_centroid_reward,
-    calculate_curvature_reward,
+    # calculate_curvature_reward,
     calculate_distance_reward,
     calculate_frechet_reward,
 )
@@ -54,13 +54,13 @@ class SalpPassageDomain(BaseScenario):
         self.agent_min_angle = -45
         self.u_multiplier = 1.0
         self.target_radius = self.agent_radius / 2
-        self.frechet_thresh = 0.85
+        self.frechet_thresh = .90
         self.min_n_agents = 8
         self.lidar_range = 0.8
         self.lidar_rays = 2
         self.open_passage_y = 100
 
-        self.goal_reached_bonus = 1.0
+       
         self.passage_entrance_bonus = .5
         self.passage_exit_bonus = .5
         self.collision_penalty = -1
@@ -91,6 +91,9 @@ class SalpPassageDomain(BaseScenario):
         world_x_dim = self.passage_width * 3
         world_y_dim = self.passage_length * 3
 
+        
+        self.goal_radius = self.agent_joint_length * self.n_agents
+
         self.n_passages = math.ceil(2 * world_x_dim / self.passage_width)
 
         self.passage_x_coordinate_list = [
@@ -117,8 +120,9 @@ class SalpPassageDomain(BaseScenario):
         self.centroid_shaping_factor = 1.0
         self.passage_entrance_factor = 1.0
         self.passage_exit_factor = 1.0
-        self.curvature_shaping_factor = 1.0
+        # self.curvature_shaping_factor = 1.0
         self.prev_dist_factor = 1.0
+        self.goal_bonus = 5.0
 
         ScenarioUtils.check_kwargs_consumed(kwargs)
 
@@ -137,17 +141,27 @@ class SalpPassageDomain(BaseScenario):
         )
 
         # Set targets
-        self.targets = []
-        for n_agent in range(self.n_agents):
-            target = Landmark(
-                name=f"target_{n_agent}_chain",
-                shape=Sphere(radius=self.target_radius),
-                color=COLOR_LIST[n_agent],
-                collide=False,
-            )
-            world.add_landmark(target)
-            self.targets.append(target)
+        # self.targets = []
+        # for n_agent in range(self.n_agents):
+        #     target = Landmark(
+        #         name=f"target_{n_agent}_chain",
+        #         shape=Sphere(radius=self.target_radius),
+        #         color=COLOR_LIST[n_agent],
+        #         collide=False,
+        #     )
+        #     world.add_landmark(target)
+        #     self.targets.append(target)
 
+
+        self.targets = []
+        target = Landmark(
+            name=f"target_rad",
+            shape=Sphere(self.goal_radius),
+            color=COLOR_MAP["GREEN"],
+            collide=False,
+        )
+        world.add_landmark(target)
+        self.targets.append(target)
         # Add agents
         entity_filter_targets: Callable[[Entity], bool] = lambda e: e.name.startswith(
             "passage"
@@ -207,13 +221,13 @@ class SalpPassageDomain(BaseScenario):
             world.add_landmark(passage)
 
         # Initialize reward tensors
-        self.reached_goal_bonus = 5.0
+       
         self.global_rew = torch.zeros(batch_dim, device=device, dtype=torch.float32)
         self.centroid_rew = self.global_rew.clone()
         self.pass_entrance_rew = self.global_rew.clone()
         self.pass_exit_rew = self.global_rew.clone()
         self.frechet_rew = self.global_rew.clone()
-        self.curvature_rew = self.global_rew.clone()
+        # self.curvature_rew = self.global_rew.clone()
         self.distance_rew = self.global_rew.clone()
 
         # Initialize memory
@@ -386,9 +400,9 @@ class SalpPassageDomain(BaseScenario):
             c_dist, _ = calculate_centroid_reward(a_pos.mean(dim=1), t_pos.mean(dim=1))
 
             chain_centroid_y = a_pos.mean(dim=1)[:, 1]
-            curvature = calculate_curvature_reward(
-                a_pos, t_pos, self.agent_joint_length
-            )
+            # curvature = calculate_curvature_reward(
+            #     a_pos, t_pos, self.agent_joint_length
+            # )
             dist_rew = calculate_distance_reward(a_pos, t_pos)
 
             self.frechet_shaping = f_dist * self.frechet_shaping_factor
@@ -400,8 +414,10 @@ class SalpPassageDomain(BaseScenario):
             self.passage_exit_shaping = torch.clamp(
                 self.pass_exit_y_threshold - chain_centroid_y, min=0.0
             )
-            self.curvature_shaping = curvature * self.curvature_shaping_factor
+            # self.curvature_shaping = curvature * self.curvature_shaping_factor
             self.prev_dist = dist_rew * self.prev_dist_factor
+
+            
 
         else:
             # Reset steps
@@ -507,9 +523,9 @@ class SalpPassageDomain(BaseScenario):
             c_dist, _ = calculate_centroid_reward(a_pos.mean(dim=1), t_pos.mean(dim=1))
 
             chain_centroid_y = a_pos.mean(dim=1)[:, 1]
-            curvature = calculate_curvature_reward(
-                a_pos, t_pos, self.agent_joint_length
-            )
+            # curvature = calculate_curvature_reward(
+            #     a_pos, t_pos, self.agent_joint_length
+            # )
             dist_rew = calculate_distance_reward(a_pos, t_pos)
 
             self.frechet_shaping[env_index] = (
@@ -525,9 +541,9 @@ class SalpPassageDomain(BaseScenario):
             self.passage_exit_shaping[env_index] = torch.clamp(
                 self.pass_exit_y_threshold - chain_centroid_y[env_index], min=0.0
             )
-            self.curvature_shaping[env_index] = (
-                curvature[env_index] * self.curvature_shaping_factor
-            )
+            # self.curvature_shaping[env_index] = (
+            #     curvature[env_index] * self.curvature_shaping_factor
+            # )
             self.prev_dist[env_index] = (
                 dist_rew[env_index] * self.prev_dist_factor
             )
@@ -598,9 +614,10 @@ class SalpPassageDomain(BaseScenario):
             angle_rad=rotation_angle,
         ).to(self.device)
 
-        self.fixed_target_chain = chain.clone()
+        # self.fixed_target_chain = chain.clone()
 
-        return self.fixed_target_chain
+        # return self.fixed_target_chain
+        return chain
 
     def interpolate(
         self,
@@ -710,21 +727,30 @@ class SalpPassageDomain(BaseScenario):
             self.centroid_rew[:] = 0
             self.pass_entrance_rew[:] = 0
             self.pass_exit_rew[:] = 0
-            self.curvature_rew[:] = 0
+            # self.curvature_rew[:] = 0
             self.distance_rew[:] = 0
 
             # Get chain positions
             agent_pos = self.get_agent_chain_position()
             target_pos = self.get_target_chain_position()
+            chain_centroid = agent_pos.mean(dim=1)
+            target_center = target_pos[:,0,:]
+
+            goal_dist = torch.norm(chain_centroid - target_center, dim=-1)
+            print(f"goal_dist: {goal_dist}")
+            inside_goal = goal_dist < self.goal_radius
+            # dist_rew = calculate_distance_reward(chain_centroid, target_center)
+            current_dist = goal_dist * self.prev_dist_factor
 
             # Distance reward
-            dist_rew = calculate_distance_reward(agent_pos, target_pos)
-            raw_distance_reward = -1 * dist_rew
-            print(f"raw distance reward: {raw_distance_reward}")
-            current_dist = dist_rew * self.prev_dist_factor
+            # dist_rew = calculate_distance_reward(agent_pos, target_pos)
+            # raw_distance_reward = -1 * dist_rew
+            # print(f"raw distance reward: {raw_distance_reward}")
+            # current_dist = dist_rew * self.prev_dist_factor
             # print(f"dr {current_dist}")
-            self.distance_rew = current_dist - self.prev_dist
-            self.distance_rew = torch.where(self.distance_rew < 0, self.distance_rew * 10, self.distance_rew )
+            print(f"prev_dist: {self.prev_dist}")
+            self.distance_rew = self.prev_dist - current_dist
+            # self.distance_rew = torch.where(self.distance_rew < 0, self.distance_rew * 10, self.distance_rew )
             print(f"distance reward: {self.distance_rew}")
             # self.distance_rew = torch.exp(current_dist) 
             # print(f"distance reward {self.distance_rew}")
@@ -782,8 +808,8 @@ class SalpPassageDomain(BaseScenario):
             )
             self.pass_exit_checkpoint = self.pass_exit_checkpoint | pass_exit_mask
 
-            print(f"entrance_rew: {self.pass_entrance_rew.mean().item():.4f}  exit_rew: {self.pass_exit_rew.mean().item():.4f}")
-            print(f"entrance_progress: {entrance_progress}, exit_progress: {exit_progress}")
+            # print(f"entrance_rew: {self.pass_entrance_rew.mean().item():.4f}  exit_rew: {self.pass_exit_rew.mean().item():.4f}")
+            # print(f"entrance_progress: {entrance_progress}, exit_progress: {exit_progress}")
 
             # Frechet reward
             _, f_rew = calculate_frechet_reward(agent_pos, target_pos)
@@ -793,8 +819,13 @@ class SalpPassageDomain(BaseScenario):
             goal_reached_rew = torch.zeros(
                 self.world.batch_dim, device=self.device, dtype=torch.float32
             )
-            goal_reached_mask = self.total_rew > self.frechet_thresh
-            goal_reached_rew += self.reached_goal_bonus * goal_reached_mask.int()
+            # goal_reached_mask = self.total_rew > self.frechet_thresh
+            # goal_reached_rew += self.reached_goal_bonus * goal_reached_mask.int()
+
+            goal_reached_mask = inside_goal
+            goal_reached_rew += self.goal_bonus * goal_reached_mask.int()
+
+            
 
             # Check for collisions
             has_collided = self.check_collisions()
@@ -803,7 +834,7 @@ class SalpPassageDomain(BaseScenario):
             )
             collision_penalty += self.collision_penalty * has_collided
             print(f"Collision penalty: {collision_penalty.mean().item():.4f}")
-            print(f"dist_rew: {self.distance_rew}")
+            # print(f"dist_rew: {self.distance_rew}")
             print(f"pass_entrance_rew: {self.pass_entrance_rew}")
             print(f"pass_exit_rew: {self.pass_exit_rew}")
             print(f"goal_reached_rew: {goal_reached_rew}")
@@ -867,10 +898,16 @@ class SalpPassageDomain(BaseScenario):
             ].flatten(start_dim=1)
 
         # Get distance to assigned position
+        # a_pos_2_t_pos_err = (
+        #     self.global_state.t_chain_all_pos[:, idx, :]
+        #     - self.global_state.a_chain_all_pos[:, idx, :]
+        # )
+
+        goal_center = self.global_state.t_chain_all_pos[:, 0, :]
         a_pos_2_t_pos_err = (
-            self.global_state.t_chain_all_pos[:, idx, :]
+            goal_center
             - self.global_state.a_chain_all_pos[:, idx, :]
-        )
+)
 
         # Get distance to open passage
         a_pos_2_passage_pos_err = (
@@ -1023,8 +1060,8 @@ class SalpPassageDomain(BaseScenario):
             self.global_state = GlobalObservation(
                 open_passages,
                 # Menger curvature
-                menger_curvature(agent_pos, self.agent_joint_length)
-                - menger_curvature(target_pos, self.agent_joint_length),
+                # menger_curvature(agent_pos, self.agent_joint_length)
+                # - menger_curvature(target_pos, self.agent_joint_length),
                 # Internal angle data
                 internal_angles,
                 internal_angles_speed,
@@ -1061,7 +1098,18 @@ class SalpPassageDomain(BaseScenario):
         self.steps += 1
 
         # Check termination conditions
-        target_reached = self.total_rew > self.frechet_thresh
+        # target_reached = self.total_rew > self.frechet_thresh
+
+        agent_pos = self.get_agent_chain_position()
+        target_pos = self.get_target_chain_position()
+
+        chain_centroid = agent_pos.mean(dim=1)
+        target_center = target_pos[:, 0, :]
+
+        goal_dist = torch.norm(chain_centroid - target_center.unsqueeze(1), dim=-1)
+
+        target_reached = torch.all(goal_dist <= self.goal_radius, dim=1)
+
         out_of_bounds = self.is_out_of_bounds(
             self.world.x_semidim, self.world.y_semidim
         )

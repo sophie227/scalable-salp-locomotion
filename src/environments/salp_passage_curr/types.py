@@ -8,7 +8,7 @@ class GlobalObservation:
     # Passage positions
     passage_pos: torch.Tensor
     # Menger_curvature
-    curvature: torch.Tensor
+    # curvature: torch.Tensor
 
     # Internal angles
     a_chain_internal_angles: torch.Tensor

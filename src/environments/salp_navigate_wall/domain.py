@@ -26,13 +26,13 @@ from environments.salp_navigate_wall.utils import (
     calculate_moment,
     internal_angles_xy,
     wrap_to_pi,
-    menger_curvature,
+    # menger_curvature,
     get_neighbor_angles,
     binary_encode,
 )
 from environments.salp_navigate_wall.rewards import (
     calculate_centroid_reward,
-    calculate_curvature_reward,
+    # calculate_curvature_reward,
     calculate_distance_reward,
     calculate_frechet_reward,
 )
@@ -72,6 +72,8 @@ class SalpNavigateDomain(BaseScenario):
         self.agent_chains = [None for _ in range(batch_dim)]
         self.rotating_salps = kwargs.pop("rotating_salps", False)
 
+        self.goal_radius = self.agent_joint_length * self.n_agents
+
         # Targets
         self.target_chains = [None for _ in range(batch_dim)]
 
@@ -98,8 +100,9 @@ class SalpNavigateDomain(BaseScenario):
         # Reward Shaping
         self.frechet_shaping_factor = 1.0
         self.centroid_shaping_factor = 1.0
-        self.curvature_shaping_factor = 1.0
-        self.prev_dist_factor = 2.0
+        # self.curvature_shaping_factor = 1.0
+        self.prev_dist_factor = 1.0
+        self.goal_bonus = 5.0
 
         # self.collision_reward_value = kwargs.pop("collision_reward", -2.0)
         self.min_collision_distance = .04
@@ -127,16 +130,26 @@ class SalpNavigateDomain(BaseScenario):
         )
 
         # Set targets
+        # self.targets = []
+        # for n_agent in range(self.n_agents):
+        #     target = Landmark(
+        #         name=f"target_{n_agent}_chain",
+        #         shape=Sphere(radius=self.target_radius),
+        #         color=COLOR_LIST[n_agent],
+        #         collide=False,
+        #     )
+        #     world.add_landmark(target)
+        #     self.targets.append(target)
+
         self.targets = []
-        for n_agent in range(self.n_agents):
-            target = Landmark(
-                name=f"target_{n_agent}_chain",
-                shape=Sphere(radius=self.target_radius),
-                color=COLOR_LIST[n_agent],
-                collide=False,
-            )
-            world.add_landmark(target)
-            self.targets.append(target)
+        target = Landmark(
+            name=f"target_rad",
+            shape=Sphere(self.goal_radius),
+            color=COLOR_MAP["GREEN"],
+            collide=False,
+        )
+        world.add_landmark(target)
+        self.targets.append(target)
 
         # Add agents
         self.agents = []
@@ -236,11 +249,11 @@ class SalpNavigateDomain(BaseScenario):
         # print("walls:", len(self.walls))
 
         # Initialize reward tensors
-        self.reached_goal_bonus = 5.0
+
         self.global_rew = torch.zeros(batch_dim, device=device, dtype=torch.float32)
         self.centroid_rew = self.global_rew.clone()
         self.frechet_rew = self.global_rew.clone()
-        self.curvature_rew = self.global_rew.clone()
+        # self.curvature_rew = self.global_rew.clone()
         self.distance_rew = self.global_rew.clone()
         self.collision_rew = 1.0
 
@@ -402,15 +415,15 @@ class SalpNavigateDomain(BaseScenario):
 
             f_dist, _ = calculate_frechet_reward(a_pos, t_pos)
             c_dist, _ = calculate_centroid_reward(a_pos.mean(dim=1), t_pos.mean(dim=1))
-            curvature = calculate_curvature_reward(
-                a_pos, t_pos, self.agent_joint_length
-            )
+            # curvature = calculate_curvature_reward(
+            #     a_pos, t_pos, self.agent_joint_length
+            # )
             dist_rew = calculate_distance_reward(a_pos, t_pos)
             # print(a_pos.shape, t_pos.shape)
 
             self.frechet_shaping = f_dist * self.frechet_shaping_factor
             self.centroid_shaping = c_dist * self.centroid_shaping_factor
-            self.curvature_shaping = curvature * self.curvature_shaping_factor
+            # self.curvature_shaping = curvature * self.curvature_shaping_factor
             self.prev_dist = dist_rew * self.prev_dist_factor
 
         else:
@@ -477,9 +490,9 @@ class SalpNavigateDomain(BaseScenario):
 
             f_dist, _ = calculate_frechet_reward(a_pos, t_pos)
             c_dist, _ = calculate_centroid_reward(a_pos.mean(dim=1), t_pos.mean(dim=1))
-            curvature = calculate_curvature_reward(
-                a_pos, t_pos, self.agent_joint_length
-            )
+            # curvature = calculate_curvature_reward(
+            #     a_pos, t_pos, self.agent_joint_length
+            # )
             dist_rew = calculate_distance_reward(a_pos, t_pos)
 
             self.frechet_shaping[env_index] = (
@@ -488,9 +501,9 @@ class SalpNavigateDomain(BaseScenario):
             self.centroid_shaping[env_index] = (
                 c_dist[env_index] * self.centroid_shaping_factor
             )
-            self.curvature_shaping[env_index] = (
-                curvature[env_index] * self.curvature_shaping_factor
-            )
+            # self.curvature_shaping[env_index] = (
+            #     curvature[env_index] * self.curvature_shaping_factor
+            # )
             self.prev_dist[env_index] = (
                 dist_rew[env_index] * self.prev_dist_factor
             )
@@ -595,8 +608,8 @@ class SalpNavigateDomain(BaseScenario):
                 chain_targets = pickle.load(f)
         chain_dict = {f"chain_{i}": chain for i, chain in enumerate(chain_targets)}
 
-        # value = random.choice(list(chain_dict.keys()))
-        value = list(chain_dict.keys())[0]
+        value = random.choice(list(chain_dict.keys()))
+        # value = list(chain_dict.keys())[0]
         # print(f"Selected chain: {value}")
         # print(f"Available chains: {list(chain_dict.keys())}")
 
@@ -671,7 +684,7 @@ class SalpNavigateDomain(BaseScenario):
 
             self.frechet_rew[:] = 0
             self.centroid_rew[:] = 0
-            self.curvature_rew[:] = 0
+            # self.curvature_rew[:] = 0
             self.distance_rew[:] = 0
 
             # Get chain positions
@@ -680,24 +693,33 @@ class SalpNavigateDomain(BaseScenario):
             # collision_rew = self.compute_collision_reward(agent_pos)
             # print(f"Collision reward: {collision_rew}")
 
-            # Distance reward
-            self.raw_dist_rew = calculate_distance_reward(agent_pos, target_pos)
-            current_dist = self.raw_dist_rew * self.prev_dist_factor
-            raw_distance_reward = -1 * self.raw_dist_rew
-            print(f"raw distance reward: {raw_distance_reward}")
+            chain_centroid = agent_pos.mean(dim=1)
+            target_center = target_pos[:, 0, :]
 
-            away_delta = torch.clamp(
-                self.prev_dist - current_dist, min=0.0
-            )  # >0 when moving away
-            near_target_mask = (
-                (self.raw_dist_rew < -0.5) & (self.raw_dist_rew > -5.0)
-            ).float()  # tune threshold
-            overshoot_penalty = 0.2 * away_delta * near_target_mask  # tune 0.2
+            goal_dist = torch.norm(chain_centroid - target_center, dim=-1)
+            print(f"goal_dist: {goal_dist}")
+            inside_goal = goal_dist < self.goal_radius
+            # dist_rew = calculate_distance_reward(chain_centroid, target_center)
+            current_dist = goal_dist * self.prev_dist_factor
+
+            # Distance reward
+            # self.raw_dist_rew = calculate_distance_reward(agent_pos, target_pos)
+            # current_dist = self.raw_dist_rew * self.prev_dist_factor
+            # raw_distance_reward = -1 * self.raw_dist_rew
+            # print(f"raw distance reward: {raw_distance_reward}")
+
+            # away_delta = torch.clamp(
+            #     self.prev_dist - current_dist, min=0.0
+            # )  # >0 when moving away
+            # near_target_mask = (
+            #     (self.raw_dist_rew < -0.5) & (self.raw_dist_rew > -5.0)
+            # ).float()  # tune threshold
+            # overshoot_penalty = 0.2 * away_delta * near_target_mask  # tune 0.2
             # print(f"Overshoot penalty: {overshoot_penalty.mean().item():.4}")
             # print(f"away_delta: {away_delta.mean().item():.4}, near_target_mask: {near_target_mask.mean().item():.4}")
             # Absolute closeness reward in (0, 1]: increases as distance decreases.
-            self.distance_rew = current_dist - self.prev_dist
-            self.distance_rew = torch.where(self.distance_rew < 0, self.distance_rew * 10, self.distance_rew )
+            self.distance_rew = self.prev_dist- current_dist
+            # self.distance_rew = torch.where(self.distance_rew < 0, self.distance_rew * 10, self.distance_rew )
             # self.distance_rew = torch.exp(current_dist)
             self.prev_dist = current_dist
 
@@ -742,8 +764,8 @@ class SalpNavigateDomain(BaseScenario):
             goal_reached_rew = torch.zeros(
                 self.world.batch_dim, device=self.device, dtype=torch.float32
             )
-            goal_reached_mask = self.raw_frech_rew > self.frechet_thresh
-            goal_reached_rew += self.reached_goal_bonus * goal_reached_mask.int()
+            goal_reached_mask = inside_goal
+            goal_reached_rew += self.goal_bonus * goal_reached_mask.int()
             print(f"Distance reward: {self.distance_rew}")
             if self.wall_enabled:
                 # Check for collisions
@@ -820,11 +842,16 @@ class SalpNavigateDomain(BaseScenario):
             ].flatten(start_dim=1)
 
         # Get distance to assigned position
+        # a_pos_2_t_pos_err = (
+        #     self.global_observation.t_chain_all_pos[:, idx, :]
+        #     - self.global_observation.a_chain_all_pos[:, idx, :]
+        # )
+
+        goal_center = self.global_observation.t_chain_all_pos[:, 0, :]
         a_pos_2_t_pos_err = (
-            self.global_observation.t_chain_all_pos[:, idx, :]
+            goal_center
             - self.global_observation.a_chain_all_pos[:, idx, :]
         )
-
         # Complete observation
         match (scope):
             case "global":
@@ -834,7 +861,7 @@ class SalpNavigateDomain(BaseScenario):
                         torch.sin(self.global_observation.a_chain_internal_angles),
                         torch.cos(self.global_observation.a_chain_internal_angles),
                         self.global_observation.a_chain_internal_angles_speed,
-                        self.global_observation.curvature,
+                        # self.global_observation.curvature,
                         # Whole body motion
                         self.global_observation.a_chain_centroid_pos,
                         self.global_observation.a_chain_centroid_vel,
@@ -996,8 +1023,8 @@ class SalpNavigateDomain(BaseScenario):
             # Build global observation
             self.global_observation = GlobalObservation(
                 # Menger curvature
-                menger_curvature(agent_pos, self.agent_joint_length)
-                - menger_curvature(target_pos, self.agent_joint_length),
+                # menger_curvature(agent_pos, self.agent_joint_length)
+                # - menger_curvature(target_pos, self.agent_joint_length),
                 # Internal angle data
                 internal_angles,
                 internal_angles_speed,
@@ -1050,7 +1077,15 @@ class SalpNavigateDomain(BaseScenario):
         # Update step count
         self.steps += 1
 
-        target_reached = self.raw_frech_rew > self.frechet_thresh
+        agent_pos = self.get_agent_chain_position()
+        target_pos = self.get_target_chain_position()
+
+        chain_centroid = agent_pos.mean(dim=1)
+        target_center = target_pos[:, 0, :]
+        print(f"Chain centroid: {chain_centroid}, Target center: {target_center}")
+        goal_dist = torch.norm(chain_centroid - target_center.unsqueeze(1), dim=-1)
+
+        target_reached = torch.all(goal_dist <= self.goal_radius, dim=1)
 
         out_of_bounds = self.is_out_of_bounds(
             self.world.x_semidim, self.world.y_semidim
@@ -1071,7 +1106,7 @@ class SalpNavigateDomain(BaseScenario):
             "chain_pose": chain_pos,
             "world_dims": world_dims,
             "frechet_rew": self.raw_frech_rew,
-            "distance_rew": self.raw_dist_rew,
+
         }
 
     def extra_render(self, env_index: int = 0) -> "List[Geom]":
