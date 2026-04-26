@@ -101,6 +101,7 @@ class SalpNavigateDomain(BaseScenario):
         self.centroid_shaping_factor = 1.0
         # self.curvature_shaping_factor = 1.0
         self.prev_dist_factor = 1.0
+        self.goal_bonus = 5.0
 
         # self.collision_reward_value = kwargs.pop("collision_reward", -2.0)
         self.min_collision_distance = 1.0
@@ -610,11 +611,11 @@ class SalpNavigateDomain(BaseScenario):
 
             
             chain_centroid = agent_pos.mean(dim=1)
-            target_center = target_pos[:, 0, :]
+            target_center = target_pos.mean(dim=1)
 
             goal_dist = torch.norm(chain_centroid - target_center, dim=-1)
-            print(f"goal_dist: {goal_dist}")
-            inside_goal = goal_dist < self.goal_radius
+            # print(f"goal_dist: {goal_dist}")
+            inside_goal = goal_dist <= self.goal_radius
             current_dist = goal_dist * self.prev_dist_factor
 
             # Distance reward
@@ -622,6 +623,7 @@ class SalpNavigateDomain(BaseScenario):
             # current_dist = self.raw_dist_rew * self.prev_dist_factor
             self.distance_rew = self.prev_dist - current_dist
             self.prev_dist = current_dist
+            print(f"Distance reward: {self.distance_rew}")
 
             # Frechet reward
 
@@ -655,8 +657,9 @@ class SalpNavigateDomain(BaseScenario):
                 self.world.batch_dim, device=self.device, dtype=torch.float32
             )
             goal_reached_mask = inside_goal
-            goal_reached_rew += self.goal_bonus * goal_reached_mask.int()
-
+            
+            goal_reached_rew += self.goal_bonus * goal_reached_mask.float()
+            print(f"Goal reached mask: {goal_reached_rew}")
             # Mix all rewards
             # print(f"Distance reward: {self.distance_rew}")
             self.global_rew = self.distance_rew + goal_reached_rew  
@@ -933,7 +936,7 @@ class SalpNavigateDomain(BaseScenario):
         target_pos = self.get_target_chain_position()
 
         chain_centroid = agent_pos.mean(dim=1)
-        target_center = target_pos[:, 0, :]
+        target_center = target_pos.mean(dim=1)
 
         goal_dist = torch.norm(chain_centroid - target_center.unsqueeze(1), dim=-1)
 

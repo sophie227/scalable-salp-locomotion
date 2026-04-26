@@ -7,7 +7,7 @@ params:
   gamma: 0.99
   grad_clip: 0.5
   lmbda: 0.95
-  lr: 2.0e-04
+  lr: 5.0e-05
   n_minibatches: 10
   n_epochs: 10
   n_total_steps: 5000000.0

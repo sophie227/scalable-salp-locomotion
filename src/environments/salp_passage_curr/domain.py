@@ -824,6 +824,7 @@ class SalpPassageDomain(BaseScenario):
 
             goal_reached_mask = inside_goal
             goal_reached_rew += self.goal_bonus * goal_reached_mask.int()
+            print(f"goal reached reward: {goal_reached_rew}")
 
             
 

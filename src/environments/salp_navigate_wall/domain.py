@@ -694,7 +694,8 @@ class SalpNavigateDomain(BaseScenario):
             # print(f"Collision reward: {collision_rew}")
 
             chain_centroid = agent_pos.mean(dim=1)
-            target_center = target_pos[:, 0, :]
+            print(f"chain_centroid {chain_centroid}")
+            target_center = target_pos.mean(dim=1)
 
             goal_dist = torch.norm(chain_centroid - target_center, dim=-1)
             print(f"goal_dist: {goal_dist}")
@@ -718,9 +719,15 @@ class SalpNavigateDomain(BaseScenario):
             # print(f"Overshoot penalty: {overshoot_penalty.mean().item():.4}")
             # print(f"away_delta: {away_delta.mean().item():.4}, near_target_mask: {near_target_mask.mean().item():.4}")
             # Absolute closeness reward in (0, 1]: increases as distance decreases.
-            self.distance_rew = self.prev_dist- current_dist
-            # self.distance_rew = torch.where(self.distance_rew < 0, self.distance_rew * 10, self.distance_rew )
+            # self.distance_rew = self.prev_dist- current_dist
+            
             # self.distance_rew = torch.exp(current_dist)
+
+            # if inside_goal.any():
+            #     self.distance_rew = -goal_dist   # or 0
+            # else:
+            self.distance_rew = self.prev_dist - current_dist
+            self.distance_rew = torch.where(self.distance_rew < 0, self.distance_rew * 100, self.distance_rew )
             self.prev_dist = current_dist
 
             target_centroid = target_pos.mean(dim=1)
@@ -733,6 +740,11 @@ class SalpNavigateDomain(BaseScenario):
             #     +  close_range_distance_rew
             # )
             # Frechet reward
+
+            head_dist = torch.norm(agent_pos[:,0,:] - target_center, dim=-1)
+            centroid_dist = torch.norm(chain_centroid - target_center, dim=-1)
+
+            print(f"head {head_dist.mean(), centroid_dist.mean()}")
 
             _, f_rew = calculate_frechet_reward(agent_pos, target_pos)
             # f_dist, _ = calculate_frechet_reward(
@@ -1081,7 +1093,7 @@ class SalpNavigateDomain(BaseScenario):
         target_pos = self.get_target_chain_position()
 
         chain_centroid = agent_pos.mean(dim=1)
-        target_center = target_pos[:, 0, :]
+        target_center = target_pos.mean(dim=1)
         print(f"Chain centroid: {chain_centroid}, Target center: {target_center}")
         goal_dist = torch.norm(chain_centroid - target_center.unsqueeze(1), dim=-1)
 
