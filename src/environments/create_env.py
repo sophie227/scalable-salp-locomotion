@@ -7,7 +7,7 @@ from vmas.simulator.environment import Environment
 
 from environments.rover.rover_domain import RoverDomain
 from environments.salp_navigate.domain import SalpNavigateDomain
-from environments.salp_navigate_wall.domain import SalpNavigateWallDomain as SalpNavigateWallDomain
+from environments.salp_navigate_wall.domain import SalpNavigateDomain as SalpNavigateWallDomain
 from environments.salp_navigate_lidar.domain import SalpNavigateLidarDomain
 from environments.salp_passage.domain import SalpPassageDomain as SalpPassageDomainOrig
 from environments.salp_passage_curr.domain import SalpPassageDomain as SalpPassageCurrDomain
