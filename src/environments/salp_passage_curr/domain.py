@@ -313,7 +313,7 @@ class SalpPassageDomain(BaseScenario):
                 indices = torch.where(self.open_passage == j)[0]
 
                 # Also hide neighbors to widen the opening
-                for neighbor_offset in [ -2,-1, 0, 1,2]:  # Hide 3 blocks: center ± 1
+                for neighbor_offset in [ -3,-2,-1, 0, 1,2,3]:  # Hide 3 blocks: center ± 1
                     neighbor_j = j + neighbor_offset
                     if 0 <= neighbor_j < self.n_passages:
                         neighbor_indices = torch.where(self.open_passage == neighbor_j)[0]
