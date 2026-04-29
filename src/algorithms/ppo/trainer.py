@@ -245,7 +245,7 @@ class PPOTrainer:
                 training_data["best_reward"] = training_data["rewards_per_iteration"][
                     -1
                 ]
-
+            
             # Store full checkpoint
             if global_step - checkpoint_step >= 10000:
 
@@ -269,11 +269,24 @@ class PPOTrainer:
                 print(
                     f"Step: {global_step}, Episodes: {total_episodes}, Best Reward: {training_data['best_reward']}, Latest Eval: {training_data['rewards_per_iteration'][-1]}, Minutes {'{:.2f}'.format((sum(training_data['timestamps'])) / 60)}"
                 )
+        if self.curriculum:
+            # Save latest rolling checkpoint (always overwritten)
+            self.learner.save(self.dirs["models"] / "stage_checkpoint")
 
-        self.learner.save(self.dirs["models"] / "stage_checkpoint")
-        # Store reward per episode data
-        with open(self.dirs["logs"] / "train.dat", "wb") as f:
-            dill.dump(training_data, f)
+            # Save permanent checkpoint for this curriculum stage
+            self.learner.save(
+                self.dirs["models"] / f"stage_{self.curriculum_stage}_checkpoint"
+            )
+
+            # Save latest training data snapshot
+            with open(self.dirs["logs"] / "train.dat", "wb") as f:
+                dill.dump(training_data, f)
+
+            # Save per-stage training data archive
+            with open(
+                self.dirs["logs"] / f"train_stage_{self.curriculum_stage}.dat", "wb"
+            ) as f:
+                dill.dump(training_data, f)
 
     def evaluate_model(self, evaluations=5):
         # Set policy to evaluation mode

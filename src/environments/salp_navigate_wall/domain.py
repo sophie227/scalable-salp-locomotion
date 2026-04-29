@@ -727,7 +727,7 @@ class SalpNavigateDomain(BaseScenario):
             #     self.distance_rew = -goal_dist   # or 0
             # else:
             self.distance_rew = self.prev_dist - current_dist
-            self.distance_rew = torch.where(self.distance_rew < 0, self.distance_rew * 100, self.distance_rew )
+            self.distance_rew = torch.where(self.distance_rew < 0, self.distance_rew * 10, self.distance_rew )
             self.prev_dist = current_dist
 
             target_centroid = target_pos.mean(dim=1)
