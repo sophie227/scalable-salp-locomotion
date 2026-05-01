@@ -415,7 +415,10 @@ class SalpPassageDomain(BaseScenario):
                 self.pass_exit_y_threshold - chain_centroid_y, min=0.0
             )
             # self.curvature_shaping = curvature * self.curvature_shaping_factor
-            self.prev_dist = dist_rew * self.prev_dist_factor
+            chain_centroid = a_pos.mean(dim=1)
+            target_center = t_pos.mean(dim=1)
+            centroid_dist = torch.norm(chain_centroid - target_center, dim=-1)
+            self.prev_dist = centroid_dist * self.prev_dist_factor
 
             
 

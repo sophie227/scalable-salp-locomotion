@@ -355,8 +355,11 @@ class SalpNavigateDomain(BaseScenario):
             self.frechet_shaping = f_dist * self.frechet_shaping_factor
             self.centroid_shaping = c_dist * self.centroid_shaping_factor
             # self.curvature_shaping = curvature * self.curvature_shaping_factor
-            self.prev_dist = dist_rew * self.prev_dist_factor
-
+            chain_centroid = a_pos.mean(dim=1)
+            target_center = t_pos.mean(dim=1)
+            centroid_dist = torch.norm(chain_centroid - target_center, dim=-1)
+            self.prev_dist = centroid_dist * self.prev_dist_factor
+            
         else:
             # Reset steps
             self.steps[env_index] = 0
