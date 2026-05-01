@@ -115,6 +115,7 @@ class PPOTrainer:
             "episodes": [],
             "timestamps": [],
             "rewards_per_iteration": [],
+            "rewards_per_episode": [],
             "reset_count": 1,
             "last_step_count": 0,
             "last_episode_count": 0,
@@ -232,19 +233,28 @@ class PPOTrainer:
 
             # Do training step
             self.learner.update()
+            
 
             # Evaluate model after training iteration
             training_data["rewards_per_iteration"].append(self.evaluate_model())
 
             # Store model if we get a new best reward
-            if (
-                training_data["rewards_per_iteration"][-1]
-                > training_data["best_reward"]
-            ):
-                self.learner.save(self.dirs["models"] / "best_model")
-                training_data["best_reward"] = training_data["rewards_per_iteration"][
-                    -1
-                ]
+            if training_data["rewards_per_iteration"][-1] > training_data["best_reward"]:
+
+                training_data["best_reward"] = training_data["rewards_per_iteration"][-1]
+
+                # Save full learner state (model + optimizer)
+                self.learner.save(self.dirs["models"] / "best_checkpoint")
+
+                # Save aligned training state
+                best_state = {
+                    "training_data": training_data,
+                    "global_step": global_step,
+                    "total_episodes": total_episodes,
+                }
+
+                with open(self.dirs["logs"] / "best_state.dat", "wb") as f:
+                    dill.dump(best_state, f)
             
             # Store full checkpoint
             if global_step - checkpoint_step >= 10000:
