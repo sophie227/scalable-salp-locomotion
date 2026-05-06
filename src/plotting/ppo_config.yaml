@@ -1,6 +1,6 @@
 #Experiment config
 # moving_avg_window_size: 200
-moving_avg_window_size: 50
+moving_avg_window_size: 1
 datapoints: [30000, 30000]
 # datapoints: [100, 100]
 # base_path: "/home/USER/scalable-salp-locomotion/src/experiments/results"
@@ -17,5 +17,5 @@ experiments: ["gcn"]
 # experiments: ["mlp", "gcn", "gat", "graph_transformer", "gcn_full", "gat_full", "graph_transformer_full"]
 # experiments: ["gcn", "gat", "graph_transformer", "gcn_full", "gat_full", "graph_transformer_full"]
 
-trials: [ "4"]
+trials: [ "5"]
 # trials: ["0"]
