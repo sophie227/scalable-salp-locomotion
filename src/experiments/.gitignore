@@ -20,3 +20,6 @@ semi_trash*
 !yamls/salp_navigate_5a_5t/gcn.yaml
 !yamls/salp_navigate_varying_salp/gcn.yaml
 !yamls/salp_navigate_varying_salp/gcn_dim.yaml
+!yamls/salp_navigate_5a_5t_curr/gcn.yaml
+!yamls/salp_navigate_varying_salp_curr/gcn_dim.yaml
+!yamls/salp_passage_5a_curriculum/gcn.yaml
