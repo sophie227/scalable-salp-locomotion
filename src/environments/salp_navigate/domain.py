@@ -941,9 +941,8 @@ class SalpNavigateDomain(BaseScenario):
         chain_centroid = agent_pos.mean(dim=1)
         target_center = target_pos.mean(dim=1)
 
-        goal_dist = torch.norm(chain_centroid - target_center.unsqueeze(1), dim=-1)
-
-        target_reached = torch.all(goal_dist <= self.goal_radius, dim=1)
+        goal_dist = torch.norm(chain_centroid - target_center, dim=-1)
+        target_reached = goal_dist <= self.goal_radius
 
         out_of_bounds = self.is_out_of_bounds(
             self.world.x_semidim, self.world.y_semidim
