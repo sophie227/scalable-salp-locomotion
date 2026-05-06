@@ -700,9 +700,10 @@ class SalpNavigateDomain(BaseScenario):
             print(f"chain_centroid {chain_centroid}")
             target_center = target_pos.mean(dim=1)
 
-            goal_dist = torch.norm(chain_centroid - target_center, dim=-1)
-            print(f"goal_dist: {goal_dist}")
+            goal_dist = torch.norm(chain_centroid - target_center, dim=-1)  # [10]
             inside_goal = goal_dist < self.goal_radius
+            print(f"goal_dist: {goal_dist}")
+            
             # dist_rew = calculate_distance_reward(chain_centroid, target_center)
             current_dist = goal_dist * self.prev_dist_factor
 
@@ -1098,10 +1099,9 @@ class SalpNavigateDomain(BaseScenario):
         chain_centroid = agent_pos.mean(dim=1)
         target_center = target_pos.mean(dim=1)
         print(f"Chain centroid: {chain_centroid}, Target center: {target_center}")
-        goal_dist = torch.norm(chain_centroid - target_center.unsqueeze(1), dim=-1)
-
-        target_reached = torch.all(goal_dist <= self.goal_radius, dim=1)
-
+        goal_dist = torch.norm(chain_centroid - target_center, dim=-1)
+        target_reached = goal_dist <= self.goal_radius
+        
         out_of_bounds = self.is_out_of_bounds(
             self.world.x_semidim, self.world.y_semidim
         )
