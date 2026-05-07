@@ -79,7 +79,9 @@ def run_curriculum(
             runner.train()
 
         # after training save file will be at
-        last_checkpoint = runner.trainer.dirs["models"] / "best_model"
+        stage_best_model = runner.trainer.dirs["models"] / f"best_curr_model_{i+1}"
+        runner.trainer.learner.save(stage_best_model)
+        last_checkpoint = stage_best_model
         print(f"Finished stage {i+1}, best model saved to {last_checkpoint}")
 
     return last_checkpoint
