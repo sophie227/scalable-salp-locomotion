@@ -19,6 +19,8 @@ class PPO_Runner(Runner):
         checkpoint: bool,
         exp_config: Experiment,
         env_config: EnvironmentParams,
+        curriculum: bool = False,
+        curriculum_stage: int = None,
     ):
         super().__init__(device, batch_dir, trials_dir, trial_id, checkpoint)
 
@@ -32,6 +34,8 @@ class PPO_Runner(Runner):
             self.trial_id,
             self.dirs,
             self.checkpoint,
+            curriculum=curriculum,
+            curriculum_stage=curriculum_stage,
         )
 
     def train(self):

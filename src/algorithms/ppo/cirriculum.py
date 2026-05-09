@@ -62,6 +62,8 @@ def run_curriculum(
             checkpoint=False,
             exp_config=exp_cfg,
             env_config=env_cfg,
+            curriculum=True,
+            curriculum_stage=i+1,
         )
 
         # if we’ve trained something already, load it

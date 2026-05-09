@@ -24,6 +24,8 @@ class PPOTrainer:
         trial_id: str,
         dirs: dict,
         checkpoint: bool = False,
+        curriculum: bool = False,
+        curriculum_stage: int = None,
     ):
         self.params = Params(**exp_config.params)
 
@@ -41,6 +43,10 @@ class PPOTrainer:
         self.dirs = dirs
 
         self.checkpoint = checkpoint
+
+        # Curriculum training attributes
+        self.curriculum = curriculum
+        self.curriculum_stage = curriculum_stage
 
         # Initialize learner early so we can load checkpoints
         self._init_learner()
