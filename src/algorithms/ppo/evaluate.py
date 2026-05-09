@@ -32,6 +32,7 @@ def evaluate(
         device,
         env_config.environment,
         0,
+        **{k: v for k, v in vars(env_config).items() if k not in ['n_envs', 'n_agents']},
         n_agents=env_config.n_agents,
     )
 
@@ -106,6 +107,7 @@ def get_scalability_data(
             device,
             env_config.environment,
             seed,
+            **{k: v for k, v in vars(env_config).items() if k not in ['n_envs', 'n_agents']},
             training=True,
             n_agents=n_agents,
         )
@@ -335,6 +337,7 @@ def get_disabled_scalability_data(
                 device,
                 env_config.environment,
                 seed,
+                **{k: v for k, v in vars(env_config).items() if k not in ['n_envs', 'n_agents']},
                 training=True,
                 n_agents=n_agents,
             )
@@ -476,6 +479,7 @@ def get_attention_data(
             device,
             env_config.environment,
             seed,
+            **{k: v for k, v in vars(env_config).items() if k not in ['n_envs', 'n_agents']},
             training=False,
             n_agents=n_agents,
         )

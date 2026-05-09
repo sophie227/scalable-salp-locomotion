@@ -67,6 +67,8 @@ class SalpNavigateDomain(BaseScenario):
 
         # Agents
         self.n_agents = kwargs.pop("n_agents", self.min_n_agents)
+       
+            
         self.state_representation = kwargs.pop("state_representation", "local")
         self.agent_chains = [None for _ in range(batch_dim)]
         self.rotating_salps = kwargs.pop("rotating_salps", False)
@@ -85,8 +87,8 @@ class SalpNavigateDomain(BaseScenario):
         # Environment
         self.train_world_x_dim = self.n_agents / 4
         self.train_world_y_dim = self.n_agents / 4
-        self.eval_world_x_dim = 32
-        self.eval_world_y_dim = 32
+        self.eval_world_x_dim = max(32, self.n_agents / 4)
+        self.eval_world_y_dim = max(32, self.n_agents / 4)
         if self.training:
             # Set a smaller world size for training like a fence
             self.world_x_dim = self.train_world_x_dim

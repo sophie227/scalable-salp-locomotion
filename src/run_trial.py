@@ -72,7 +72,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--stages",
         default=None,
-        help="YAML/JSON string describing list of stage patches, e.g. '[{\"n_agents\":8},{\"n_agents\":12}]'",
+        help="YAML/JSON string describing list of stage patches, e.g. '[{\"chain\":8},{\"chain\":16},{\"chain\":32}]' or use n_agents instead of chain.",
         type=str,
     )
     parser.add_argument(

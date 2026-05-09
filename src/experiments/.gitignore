@@ -1,6 +1,7 @@
 completed*
 results*
 semi_trash*
+saves*
 *.yaml
 !_env.yaml
 !check_tensorboard.yaml

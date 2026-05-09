@@ -39,8 +39,10 @@ def view(
         device,
         env_config.environment,
         seed,  # 10265
+        **{k: v for k, v in vars(env_config).items() if k not in ['n_envs', 'n_agents']},
         n_agents=n_agents_eval,
         training=False,
+        # neighbor_offset=env_config.neighbor_offset,
     )
 
     d_action = env.action_space.spaces[0].shape[0]

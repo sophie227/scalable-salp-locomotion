@@ -47,14 +47,19 @@ def run_curriculum(
 
         # apply the stage-specific overrides
         for k, v in patch.items():
-            setattr(env_cfg, k, v)
+            if k == "chain":
+                setattr(env_cfg, "n_agents", v)
+            else:
+                setattr(env_cfg, k, v)
+
+        stage_trial_id = f"{trial_id}_stage_{i+1}"
 
         runner = PPO_Runner(
             device=device,
             batch_dir=batch_dir,
             trials_dir=trials_dir,
-            trial_id=trial_id,
-            checkpoint=False,           # we handle loading ourselves
+            trial_id=stage_trial_id,
+            checkpoint=False,
             exp_config=exp_cfg,
             env_config=env_cfg,
         )
@@ -79,9 +84,7 @@ def run_curriculum(
             runner.train()
 
         # after training save file will be at
-        stage_best_model = runner.trainer.dirs["models"] / f"best_curr_model_{i+1}"
-        runner.trainer.learner.save(stage_best_model)
-        last_checkpoint = stage_best_model
+        last_checkpoint = runner.trainer.dirs["models"] / "best.pt"
         print(f"Finished stage {i+1}, best model saved to {last_checkpoint}")
 
     return last_checkpoint

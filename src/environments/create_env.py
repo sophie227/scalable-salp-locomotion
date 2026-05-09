@@ -106,7 +106,7 @@ def create_env(
                 "scenario": SalpNavigateDomain(),
                 "training": kwargs.get("training", True),
                 # Agent data
-                "n_agents": kwargs.get("n_agents", 1),
+                "n_agents": kwargs.get("n_agents", kwargs.get("chain", 1)),
                 "state_representation": env_config["state_representation"],
                 "rotating_salps": env_config["rotating_salps"],
             }
@@ -118,7 +118,7 @@ def create_env(
                 "scenario": SalpNavigateWallDomain(),
                 "training": kwargs.get("training", True),
                 # Agent data
-                "n_agents": kwargs.get("n_agents", 1),
+                "n_agents": kwargs.get("n_agents", kwargs.get("chain", 1)),
                 "state_representation": env_config.get("state_representation", "local"),
                 "rotating_salps": env_config.get("rotating_salps", False),
                
@@ -131,7 +131,7 @@ def create_env(
                 "scenario": SalpNavigateLidarDomain(),
                 "training": kwargs.get("training", True),
                 # Agent data
-                "n_agents": kwargs.get("n_agents", 1),
+                "n_agents": kwargs.get("n_agents", kwargs.get("chain", 1)),
                 "state_representation": env_config.get("state_representation", "local"),
                 "rotating_salps": env_config.get("rotating_salps", False),
             }
@@ -145,7 +145,7 @@ def create_env(
                 "scenario": SalpPassageDomainOrig(),
                 "training": kwargs.get("training", True),
                 # Agent data
-                "n_agents": kwargs.get("n_agents", 1),
+                "n_agents": kwargs.get("n_agents", kwargs.get("chain", 1)),
                 "state_representation": env_config["state_representation"],
             }
             return create_vmas_env(n_envs, device, seed, env_args)
@@ -156,12 +156,14 @@ def create_env(
                 "scenario": SalpPassageCurrDomain(),
                 "training": kwargs.get("training", True),
                 # Agent data
-                "n_agents": kwargs.get("n_agents", 1),
+                "n_agents": kwargs.get("n_agents", kwargs.get("chain", 1)),
                 "state_representation": env_config.get("state_representation", "local"),
                 "rotating_salps": kwargs.get(
                     "rotating_salps", env_config.get("rotating_salps", False)
                 ),
-                
+                "neighbor_offset": kwargs.get(
+                    "neighbor_offset", getattr(env_config, "neighbor_offset", [-3, -2, -1, 0, 1, 2, 3])
+                ),
             }
             return create_vmas_env(n_envs, device, seed, env_args)
         #     # TODO: add actual mamujoco env code

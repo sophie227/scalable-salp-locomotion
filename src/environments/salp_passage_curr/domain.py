@@ -83,6 +83,25 @@ class SalpPassageDomain(BaseScenario):
         self.agent_chains = [None for _ in range(batch_dim)]
         self.rotating_salps = kwargs.pop("rotating_salps", False)
 
+        neighbor_offset = kwargs.pop("neighbor_offset", None)
+        if neighbor_offset is None:
+            self.neighbor_offset = [-3, -2, -1, 0, 1, 2, 3]
+        elif isinstance(neighbor_offset, int):
+            self.neighbor_offset = list(range(-neighbor_offset, neighbor_offset + 1))
+        elif isinstance(neighbor_offset, str):
+            if neighbor_offset == "small":
+                self.neighbor_offset = [-1, 0, 1]
+            elif neighbor_offset == "medium":
+                self.neighbor_offset = [-2, -1, 0, 1, 2]
+            elif neighbor_offset == "large":
+                self.neighbor_offset = [-3, -2, -1, 0, 1, 2, 3]
+            elif neighbor_offset == "expert":
+                self.neighbor_offset = [0]
+            else:
+                self.neighbor_offset = [int(neighbor_offset)]
+        else:
+            self.neighbor_offset = list(neighbor_offset)
+
         # Environment
         self.passage_width = self.agent_joint_length * self.n_agents * 1.2
         self.passage_length = self.agent_joint_length * self.n_agents
@@ -313,7 +332,7 @@ class SalpPassageDomain(BaseScenario):
                 indices = torch.where(self.open_passage == j)[0]
 
                 # Also hide neighbors to widen the opening
-                for neighbor_offset in [ -3,-2,-1, 0, 1,2,3]:  # Hide 3 blocks: center ± 1
+                for neighbor_offset in self.neighbor_offset:
                     neighbor_j = j + neighbor_offset
                     if 0 <= neighbor_j < self.n_passages:
                         neighbor_indices = torch.where(self.open_passage == neighbor_j)[0]
@@ -433,7 +452,7 @@ class SalpPassageDomain(BaseScenario):
             # Set passage positions
             for i, passage in enumerate(passages):
 
-                for neighbor_offset in [-3, -2, -1, 0, 1, 2, 3]:  # Hide 3 blocks: center ± 1
+                for neighbor_offset in self.neighbor_offset:
                     neighbor_i = i + neighbor_offset
                     if 0 <= neighbor_i < self.n_passages:
                         if self.open_passage[env_index] == neighbor_i:
@@ -837,7 +856,7 @@ class SalpPassageDomain(BaseScenario):
                 self.world.batch_dim, device=self.device, dtype=torch.float32
             )
             collision_penalty += self.collision_penalty * has_collided
-            print(f"Collision penalty: {collision_penalty.mean().item():.4f}")
+            print(f"Collision penalty: {self.collision_penalty}")
             # print(f"dist_rew: {self.distance_rew}")
             print(f"pass_entrance_rew: {self.pass_entrance_rew}")
             print(f"pass_exit_rew: {self.pass_exit_rew}")
