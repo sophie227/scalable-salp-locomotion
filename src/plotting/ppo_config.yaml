@@ -6,16 +6,17 @@ datapoints: [30000, 30000]
 # base_path: "/home/USER/scalable-salp-locomotion/src/experiments/results"
 base_path: "/home/sophie/scalable-salp-locomotion/src/experiments/results/"
 
-batches: ["salp_passage_5a_curriculum"]
+batches: ["salp_navigate_varying_salp_curr"]
 # batches: ["salp_navigate_8a", "salp_navigate_16a"]
 # batches: ["salp_navigate_8a_hpc", "salp_navigate_16a"]
 # batches: ["salp_navigate_8a_ver_0", "salp_navigate_8a_ver_1"]
 # batches: ["salp_navigate_8a_state_test", "salp_navigate_16a"]
 # batches: ["salp_navigate_8a_ver_1"]
 
-experiments: ["gcn"]
+experiments: ["gcn_dim"]
 # experiments: ["mlp", "gcn", "gat", "graph_transformer", "gcn_full", "gat_full", "graph_transformer_full"]
 # experiments: ["gcn", "gat", "graph_transformer", "gcn_full", "gat_full", "graph_transformer_full"]
 
 trials: [ "0", "1", "2", "3", "4" ,"5", "6", "7", "8", "9"]
+# trials: [ "1_stage_1"]
 # trials: ["0"]
