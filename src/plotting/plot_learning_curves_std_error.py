@@ -56,6 +56,7 @@ for batch in config["batches"]:
                         max_len = max(max_len, len(smoothed_data))
                     else:
                         print(f"Warning: Trial {trial} has too few data points for smoothing")
+            
 
 # Second pass: pad arrays to the same length if needed
 for exp_key in experiment_data:

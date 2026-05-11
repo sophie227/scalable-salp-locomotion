@@ -2,15 +2,15 @@ device: cpu
 model: gcn_dim
 params:
   batch_size: 5120
-  ent_coef: 0.005
+  ent_coef: 0.001
   eps_clip: 0.2
   gamma: 0.99
   grad_clip: 0.5
   lmbda: 0.95
-  lr: 2.0e-05
+  lr: 5.0e-05
   n_minibatches: 10
   n_epochs: 10
-  n_total_steps: 5000000.0
+  n_total_steps: 7000000.0
   random_seeds:
   - 118
   - 1234

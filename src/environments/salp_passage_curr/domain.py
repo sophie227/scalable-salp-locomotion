@@ -58,7 +58,7 @@ class SalpPassageDomain(BaseScenario):
         self.min_n_agents = 8
         self.lidar_range = 0.8
         self.lidar_rays = 2
-        self.open_passage_y = 100
+        # self.open_passage_y = 100
 
        
         self.passage_entrance_bonus = .5
@@ -101,7 +101,7 @@ class SalpPassageDomain(BaseScenario):
                 self.neighbor_offset = [int(neighbor_offset)]
         else:
             self.neighbor_offset = list(neighbor_offset)
-
+        print("NEIGHBOR OFFSET IN MAKE_WORLD:", self.neighbor_offset)
         # Environment
         self.passage_width = self.agent_joint_length * self.n_agents * 1.2
         self.passage_length = self.agent_joint_length * self.n_agents
@@ -201,9 +201,10 @@ class SalpPassageDomain(BaseScenario):
                             n_rays=self.lidar_rays,
                             max_range=self.lidar_range,
                             entity_filter=entity_filter_targets,
-                            angle_start=0.5 * torch.pi,
-                            angle_end=1.5 * torch.pi,
+                            angle_start=-0.5 * torch.pi,
+                            angle_end=0.5 * torch.pi,
                             alpha=0.1,
+                        
                         )
                     ]
                 ),
@@ -270,6 +271,10 @@ class SalpPassageDomain(BaseScenario):
 
     def reset_world_at(self, env_index: int = None):
 
+        print("RESET WORLD")
+        # print("open_passage:", self.open_passage_y)
+        print("neighbor_offset:", self.neighbor_offset)
+       
         # Rotation params
         agent_rotation_angles = [
             random.uniform(0, 2 * math.pi) for _ in range(self.world.batch_dim)
@@ -342,7 +347,7 @@ class SalpPassageDomain(BaseScenario):
                                 torch.tensor(
                                     [
                                         self.passage_x_coordinate_list[j],
-                                        self.open_passage_y,
+                                        # self.open_passage_y,
                                     ],
                                     dtype=torch.float32,
                                     device=self.world.device,
@@ -461,7 +466,7 @@ class SalpPassageDomain(BaseScenario):
                                 torch.tensor(
                                     [
                                         self.passage_x_coordinate_list[i],
-                                        self.open_passage_y,
+                                        # self.open_passage_y,
                                     ],
                                     dtype=torch.float32,
                                     device=self.world.device,
@@ -743,6 +748,8 @@ class SalpPassageDomain(BaseScenario):
         is_first = agent == self.world.agents[0]
 
         if is_first:
+            
+           
 
             # Calculate rewards
             self.frechet_rew[:] = 0
@@ -772,7 +779,7 @@ class SalpPassageDomain(BaseScenario):
             # print(f"dr {current_dist}")
             print(f"prev_dist: {self.prev_dist}")
             self.distance_rew = self.prev_dist - current_dist
-            # self.distance_rew = torch.where(self.distance_rew < 0, self.distance_rew * 10, self.distance_rew )
+            self.distance_rew = torch.where(self.distance_rew < 0, self.distance_rew * 10, self.distance_rew )
             print(f"distance reward: {self.distance_rew}")
             # self.distance_rew = torch.exp(current_dist) 
             # print(f"distance reward {self.distance_rew}")
@@ -856,12 +863,18 @@ class SalpPassageDomain(BaseScenario):
                 self.world.batch_dim, device=self.device, dtype=torch.float32
             )
             collision_penalty += self.collision_penalty * has_collided
-            print(f"Collision penalty: {self.collision_penalty}")
+            print(f"Collision penalty: {collision_penalty}")
             # print(f"dist_rew: {self.distance_rew}")
             print(f"pass_entrance_rew: {self.pass_entrance_rew}")
             print(f"pass_exit_rew: {self.pass_exit_rew}")
             print(f"goal_reached_rew: {goal_reached_rew}")
-            
+
+            print("open_passage:", self.open_passage[:5])
+            print("collision tensor:", has_collided[:5])
+            print("any overlap raw:",
+            [(self.world.is_overlapping(a, p).max().item())
+            for a in self.world.agents[:2]
+            for p in self.get_passages()[:2]])
 
             # Mix all rewards
             self.global_rew = (
@@ -1018,10 +1031,10 @@ class SalpPassageDomain(BaseScenario):
             passage_pos = self.get_passages_positions()
             batch_indices = torch.arange(self.world.batch_dim)
             open_passages = passage_pos[batch_indices, self.open_passage]
-            open_passages = torch.sub(
-                open_passages,
-                torch.tensor((0, self.open_passage_y)),
-            )
+            # open_passages = torch.sub(
+            #     open_passages,
+            #     torch.tensor((0, self.open_passage_y)),
+            # )
 
             agent_pos = self.get_agent_chain_position()
             target_pos = self.get_target_chain_position()

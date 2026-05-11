@@ -3,6 +3,7 @@ from copy import deepcopy
 from pathlib import Path
 from typing import List, Dict, Optional
 
+from algorithms import runner
 from algorithms.ppo.types import Experiment
 from environments.types import EnvironmentParams
 from algorithms.ppo.run import PPO_Runner        # or import PPOTrainer directly
@@ -21,7 +22,7 @@ def run_curriculum(
     stages: List[Dict],              # e.g. [{'n_agents':8}, {'n_agents':12}, {'n_agents':16}]
     # initial_checkpoint: Optional[Path] = Path("/experiments/results/salp_navigate_5a_1t/gcn/0/models/checkpoint"), #'/home/sophie/scalable-salp-locomotion/src/experiments/results/salp_navigate_5a/gcn/0/models/checkpoint',
     initial_checkpoint: Optional[Path] = None,
-    view: bool = False,
+    curriculum_view: bool = False,
     evaluate: bool = False,
 ):
 
@@ -67,35 +68,100 @@ def run_curriculum(
         )
 
         # if we’ve trained something already, load it
+        # if we’ve trained something already, load it
+
+        # if we’ve trained something already, load it
         if last_checkpoint is not None and last_checkpoint.is_file():
+
+            print("\n====================")
+            print("LOADING CHECKPOINT")
+            print("====================")
+
+            print(f"Checkpoint path: {last_checkpoint}")
+            print(f"Checkpoint exists: {last_checkpoint.exists()}")
+
+            # Weight BEFORE loading
+            first_weight_before = next(
+                runner.trainer.learner.policy.parameters()
+            ).flatten()[0].item()
+
+            print(f"Weight BEFORE load: {first_weight_before}")
+
             try:
                 runner.trainer.learner.load(last_checkpoint)
+
+                # Weight AFTER loading
+                first_weight_after = next(
+                    runner.trainer.learner.policy.parameters()
+                ).flatten()[0].item()
+
+                print(f"Weight AFTER load: {first_weight_after}")
+
+                if first_weight_before == first_weight_after:
+                    print("WARNING: weights did NOT change after loading")
+                else:
+                    print("SUCCESS: weights changed after loading")
+
+                print(f"Loaded checkpoint: {last_checkpoint}")
+
             except RuntimeError as exc:
                 print(
-                    "Skipping checkpoint load for this stage due to shape mismatch "
-                    f"(likely n_agents changed): {exc}"
+                    "Skipping checkpoint load due to shape mismatch:\n"
+                    f"{exc}"
                 )
+
+            print("====================\n")
 
 
         # run one full experiment (honours exp_cfg.params.n_total_steps, etc)
-        if view:
+        if curriculum_view:
+
+            current_stage_checkpoint = (
+                runner.trainer.dirs["models"] / "best_checkpoint.pt"
+            )
+
+            if current_stage_checkpoint.exists():
+
+                print(f"Loading current stage checkpoint: {current_stage_checkpoint}")
+
+                runner.trainer.learner.load(current_stage_checkpoint)
+
+            else:
+                print(f"No checkpoint found for stage {i+1}")
+
             runner.view()
+
         elif evaluate:
+
+            current_stage_checkpoint = (
+                runner.trainer.dirs["models"] / "best_checkpoint.pt"
+            )
+
+            if current_stage_checkpoint.exists():
+
+                print(f"Loading current stage checkpoint: {current_stage_checkpoint}")
+
+                runner.trainer.learner.load(current_stage_checkpoint)
+
+            else:
+                print(f"No checkpoint found for stage {i+1}")
+
             runner.evaluate()
+
         else:
             runner.train()
-
         # after training save file will be at
        # Path to this stage's model directory
         stage_model_dir = runner.trainer.dirs["models"]
 
         # This is the BEST model of the CURRENT stage
-        stage_best_checkpoint = stage_model_dir / "best.pt"
+        stage_best_checkpoint = stage_model_dir / "best_checkpoint.pt"
 
         print(f"Finished stage {i+1}")
         print(f"Saving CURRENT stage best model: {stage_best_checkpoint}")
 
         # This will be used for the NEXT stage
         last_checkpoint = stage_best_checkpoint
+        print(f"Checkpoint for next stage: {last_checkpoint}")
 
     return last_checkpoint

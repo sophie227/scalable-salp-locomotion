@@ -163,7 +163,7 @@ if __name__ == "__main__":
             trial_id=args["trial_id"],
             stages=stages,
             initial_checkpoint=initial_ckpt,
-            view=args.get("curriculum_view"),
+            curriculum_view=args.get("curriculum_view"),
             evaluate=args.get("curriculum_evaluate"),
         )
     else:
