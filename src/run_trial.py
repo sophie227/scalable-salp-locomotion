@@ -159,9 +159,11 @@ if __name__ == "__main__":
             experiment_name=args["name"],
             environment=args["environment"],
             algorithm=args["algorithm"],
+            checkpoint=args.get("checkpoint"),
             trials_dir=trials_dir,
             trial_id=args["trial_id"],
             stages=stages,
+            
             initial_checkpoint=initial_ckpt,
             curriculum_view=args.get("curriculum_view"),
             evaluate=args.get("curriculum_evaluate"),

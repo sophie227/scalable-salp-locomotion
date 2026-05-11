@@ -1,12 +1,11 @@
-
 from copy import deepcopy
 from pathlib import Path
 from typing import List, Dict, Optional
 
-from algorithms import runner
 from algorithms.ppo.types import Experiment
 from environments.types import EnvironmentParams
-from algorithms.ppo.run import PPO_Runner        # or import PPOTrainer directly
+from algorithms.ppo.run import PPO_Runner
+
 
 def run_curriculum(
     base_exp: Experiment,
@@ -19,39 +18,24 @@ def run_curriculum(
     algorithm: str,
     trials_dir: Path,
     trial_id: str,
-    stages: List[Dict],              # e.g. [{'n_agents':8}, {'n_agents':12}, {'n_agents':16}]
-    # initial_checkpoint: Optional[Path] = Path("/experiments/results/salp_navigate_5a_1t/gcn/0/models/checkpoint"), #'/home/sophie/scalable-salp-locomotion/src/experiments/results/salp_navigate_5a/gcn/0/models/checkpoint',
+    stages: List[Dict],
     initial_checkpoint: Optional[Path] = None,
     curriculum_view: bool = False,
     evaluate: bool = False,
 ):
-
-
-
-    """
-    Run a sequence of training stages.  At each stage the environment
-    configuration is patched with the dict in `stages`, the trainer is
-    constructed, and – if we have a previous checkpoint – it is loaded.
-
-    The returned Path points to the last best‑model file.
-    """
     last_checkpoint = initial_checkpoint
+
     print("start")
     print(f"initial checkpoint: {last_checkpoint}")
 
     for i, patch in enumerate(stages):
         print(f"\n=== curriculum stage {i+1}/{len(stages)}: {patch} ===")
 
-        # clone configs so we don’t mutate the caller’s copy
         env_cfg = deepcopy(base_env)
         exp_cfg = deepcopy(base_exp)
 
-        # apply the stage-specific overrides
         for k, v in patch.items():
-            if k == "chain":
-                setattr(env_cfg, "n_agents", v)
-            else:
-                setattr(env_cfg, k, v)
+            setattr(env_cfg, k, v)
 
         stage_trial_id = f"{trial_id}_stage_{i+1}"
 
@@ -60,108 +44,242 @@ def run_curriculum(
             batch_dir=batch_dir,
             trials_dir=trials_dir,
             trial_id=stage_trial_id,
-            checkpoint=False,
+            checkpoint=True,
             exp_config=exp_cfg,
             env_config=env_cfg,
             curriculum=True,
-            curriculum_stage=i+1,
+            curriculum_stage=i + 1,
         )
 
-        # if we’ve trained something already, load it
-        # if we’ve trained something already, load it
+        # -----------------------------
+        # LOAD PREVIOUS STAGE CHECKPOINT
+        # -----------------------------
+        if last_checkpoint is not None and Path(last_checkpoint).is_file():
+            print(f"Loading checkpoint: {last_checkpoint}")
+            runner.trainer.learner.load(last_checkpoint)
 
-        # if we’ve trained something already, load it
-        if last_checkpoint is not None and last_checkpoint.is_file():
-
-            print("\n====================")
-            print("LOADING CHECKPOINT")
-            print("====================")
-
-            print(f"Checkpoint path: {last_checkpoint}")
-            print(f"Checkpoint exists: {last_checkpoint.exists()}")
-
-            # Weight BEFORE loading
-            first_weight_before = next(
-                runner.trainer.learner.policy.parameters()
-            ).flatten()[0].item()
-
-            print(f"Weight BEFORE load: {first_weight_before}")
-
-            try:
-                runner.trainer.learner.load(last_checkpoint)
-
-                # Weight AFTER loading
-                first_weight_after = next(
-                    runner.trainer.learner.policy.parameters()
-                ).flatten()[0].item()
-
-                print(f"Weight AFTER load: {first_weight_after}")
-
-                if first_weight_before == first_weight_after:
-                    print("WARNING: weights did NOT change after loading")
-                else:
-                    print("SUCCESS: weights changed after loading")
-
-                print(f"Loaded checkpoint: {last_checkpoint}")
-
-            except RuntimeError as exc:
-                print(
-                    "Skipping checkpoint load due to shape mismatch:\n"
-                    f"{exc}"
-                )
-
-            print("====================\n")
-
-
-        # run one full experiment (honours exp_cfg.params.n_total_steps, etc)
+        # -----------------------------
+        # RUN STAGE
+        # -----------------------------
         if curriculum_view:
-
-            current_stage_checkpoint = (
-                runner.trainer.dirs["models"] / "best_checkpoint.pt"
-            )
-
-            if current_stage_checkpoint.exists():
-
-                print(f"Loading current stage checkpoint: {current_stage_checkpoint}")
-
-                runner.trainer.learner.load(current_stage_checkpoint)
-
-            else:
-                print(f"No checkpoint found for stage {i+1}")
-
             runner.view()
-
         elif evaluate:
-
-            current_stage_checkpoint = (
-                runner.trainer.dirs["models"] / "best_checkpoint.pt"
-            )
-
-            if current_stage_checkpoint.exists():
-
-                print(f"Loading current stage checkpoint: {current_stage_checkpoint}")
-
-                runner.trainer.learner.load(current_stage_checkpoint)
-
-            else:
-                print(f"No checkpoint found for stage {i+1}")
-
             runner.evaluate()
-
         else:
             runner.train()
-        # after training save file will be at
-       # Path to this stage's model directory
-        stage_model_dir = runner.trainer.dirs["models"]
 
-        # This is the BEST model of the CURRENT stage
-        stage_best_checkpoint = stage_model_dir / "best_checkpoint.pt"
+        # -----------------------------
+        # SAVE STAGE CHECKPOINT
+        # -----------------------------
+        stage_best_checkpoint = runner.trainer.dirs["models"] / "best_checkpoint.pt"
 
         print(f"Finished stage {i+1}")
-        print(f"Saving CURRENT stage best model: {stage_best_checkpoint}")
+        print(f"Saved: {stage_best_checkpoint}")
 
-        # This will be used for the NEXT stage
+        # IMPORTANT: pass forward correctly
         last_checkpoint = stage_best_checkpoint
-        print(f"Checkpoint for next stage: {last_checkpoint}")
 
     return last_checkpoint
+
+
+
+
+# from copy import deepcopy
+# from dataclasses import dataclass
+# from pathlib import Path
+# from typing import Dict, List, Optional
+
+# import torch
+
+# from algorithms.ppo.run import PPO_Runner
+
+
+# # =========================================================
+# # 1. CURRICULUM STAGE DEFINITION
+# # =========================================================
+
+# @dataclass
+# class CurriculumStage:
+#     name: str
+#     env_overrides: Dict
+#     steps: int
+
+
+# # =========================================================
+# # 2. CHECKPOINT HELPERS (FULL RESTORE)
+# # =========================================================
+
+# def save_checkpoint(path: Path, model, optimizer, extra: dict = None):
+#     torch.save(
+#         {
+#             "model": model.state_dict(),
+#             "optimizer": optimizer.state_dict(),
+#             "extra": extra or {},
+#         },
+#         path,
+#     )
+
+
+# def load_checkpoint(path: Path, model, optimizer):
+#     ckpt = torch.load(path, map_location="cpu")
+
+#     model.load_state_dict(ckpt["model"])
+#     optimizer.load_state_dict(ckpt["optimizer"])
+
+#     return ckpt.get("extra", {})
+
+
+# # =========================================================
+# # 3. CURRICULUM RUNNER
+# # =========================================================
+
+# class CurriculumRunner:
+#     def __init__(
+#         self,
+#         base_exp,
+#         base_env,
+#         device: str,
+#         batch_dir: Path,
+#         trials_dir: Path,
+#         trial_id: str,
+#         models_dir: Path,
+#     ):
+#         self.base_exp = base_exp
+#         self.base_env = base_env
+#         self.device = device
+
+#         self.batch_dir = batch_dir
+#         self.trials_dir = trials_dir
+#         self.trial_id = trial_id
+#         self.models_dir = models_dir
+
+#         self.last_checkpoint: Optional[Path] = None
+
+#     # -----------------------------------------------------
+#     # Run one stage
+#     # -----------------------------------------------------
+#     def run_stage(self, stage: CurriculumStage, stage_idx: int):
+
+#         print(f"\n==============================")
+#         print(f"STAGE {stage_idx}: {stage.name}")
+#         print(f"==============================")
+
+#         # ---- clone configs ----
+#         env_cfg = deepcopy(self.base_env)
+#         exp_cfg = deepcopy(self.base_exp)
+
+#         # ---- apply overrides ----
+#         for k, v in stage.env_overrides.items():
+#             setattr(env_cfg, k, v)
+
+#         # ---- build runner ----
+#         runner = PPO_Runner(
+#             device=self.device,
+#             batch_dir=self.batch_dir,
+#             trials_dir=self.trials_dir,
+#             trial_id=f"{self.trial_id}_stage_{stage_idx}",
+#             checkpoint=True,
+#             exp_config=exp_cfg,
+#             env_config=env_cfg,
+#             curriculum=True,
+#             curriculum_stage=stage_idx,
+#             initial_checkpoint=self.last_checkpoint,   # 🔥 KEY FIX
+#         )
+
+#         trainer = runner.trainer
+
+#         # ---- train ----
+#         trainer.train()
+
+#         # ---- save checkpoint ----
+#         stage_ckpt = self.models_dir / f"stage_{stage_idx}.pt"
+
+#         save_checkpoint(
+#             stage_ckpt,
+#             trainer.learner.policy,
+#             trainer.learner.optimizer,
+#             extra={
+#                 "stage": stage.name,
+#                 "env": stage.env_overrides,
+#             },
+#         )
+
+#         print(f"Saved stage checkpoint → {stage_ckpt}")
+
+#         self.last_checkpoint = stage_ckpt
+
+#         return stage_ckpt
+
+#     # -----------------------------------------------------
+#     # Run full curriculum
+#     # -----------------------------------------------------
+#     def run(self, curriculum: List[CurriculumStage]):
+#         for i, stage in enumerate(curriculum):
+#             self.run_stage(stage, i + 1)
+
+
+# # =========================================================
+# # 4. EXAMPLE CURRICULUM (3 LEVELS)
+# # =========================================================
+
+# def build_default_curriculum():
+#     return [
+#         CurriculumStage(
+#             name="easy",
+#             env_overrides={
+#                 "neighbor_offset": "large",
+#             },
+#             steps=2_000_000,
+#         ),
+#         CurriculumStage(
+#             name="medium",
+#             env_overrides={
+#                 "neighbor_offset": "medium",
+#             },
+#             steps=1_000_000,
+#         ),
+
+#         CurriculumStage(
+#             name="hard",
+#             env_overrides={
+#                 "neighbor_offset": "small",
+#             },
+#             steps=1_000_000,
+#         ),
+#         CurriculumStage(
+#             name="expert",
+#             env_overrides={
+#                 "neighbor_offset": "expert",
+#             },
+#             steps=2_000_000,
+#         ),
+#     ]
+
+
+# # =========================================================
+# # 5. ENTRY POINT
+# # =========================================================
+
+# def run_curriculum_training(
+#     base_exp,
+#     base_env,
+#     device,
+#     batch_dir,
+#     trials_dir,
+#     trial_id,
+#     models_dir,
+# ):
+#     runner = CurriculumRunner(
+#         base_exp=base_exp,
+#         base_env=base_env,
+#         device=device,
+#         batch_dir=batch_dir,
+#         trials_dir=trials_dir,
+#         trial_id=trial_id,
+#         models_dir=models_dir,
+#     )
+
+#     curriculum = build_default_curriculum()
+#     runner.run(curriculum)
+
+#     return runner.last_checkpoint
