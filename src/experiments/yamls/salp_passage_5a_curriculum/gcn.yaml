@@ -10,7 +10,7 @@ params:
   lr: 2.0e-04
   n_minibatches: 10
   n_epochs: 10
-  n_total_steps: 1000000.0
+  n_total_steps: 1200000.0
   random_seeds:
   - 118
   - 1234
