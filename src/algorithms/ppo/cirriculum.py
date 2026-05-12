@@ -35,8 +35,9 @@ def run_curriculum(
             env_cfg = deepcopy(base_env)
         else:
             env_cfg = deepcopy(prev_env_cfg)
-            exp_cfg = deepcopy(base_exp)
 
+        exp_cfg = deepcopy(base_exp)
+        
         for k, v in patch.items():
             setattr(env_cfg, k, v)
 
