@@ -159,7 +159,6 @@ if __name__ == "__main__":
             experiment_name=args["name"],
             environment=args["environment"],
             algorithm=args["algorithm"],
-            checkpoint=args.get("checkpoint"),
             trials_dir=trials_dir,
             trial_id=args["trial_id"],
             stages=stages,

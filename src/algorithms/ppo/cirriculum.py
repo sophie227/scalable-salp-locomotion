@@ -31,8 +31,11 @@ def run_curriculum(
     for i, patch in enumerate(stages):
         print(f"\n=== curriculum stage {i+1}/{len(stages)}: {patch} ===")
 
-        env_cfg = deepcopy(base_env)
-        exp_cfg = deepcopy(base_exp)
+        if i == 0:
+            env_cfg = deepcopy(base_env)
+        else:
+            env_cfg = deepcopy(prev_env_cfg)
+            exp_cfg = deepcopy(base_exp)
 
         for k, v in patch.items():
             setattr(env_cfg, k, v)
@@ -58,6 +61,12 @@ def run_curriculum(
             print(f"Loading checkpoint: {last_checkpoint}")
             runner.trainer.learner.load(last_checkpoint)
 
+            print(
+                "Loaded weight:",
+                next(
+                    runner.trainer.learner.policy.parameters()
+                ).flatten()[0].item()
+            )
         # -----------------------------
         # RUN STAGE
         # -----------------------------
@@ -71,13 +80,14 @@ def run_curriculum(
         # -----------------------------
         # SAVE STAGE CHECKPOINT
         # -----------------------------
-        stage_best_checkpoint = runner.trainer.dirs["models"] / "best_checkpoint.pt"
+        stage_checkpoint = runner.trainer.dirs["models"] / "checkpoint.pt"
 
         print(f"Finished stage {i+1}")
-        print(f"Saved: {stage_best_checkpoint}")
+        print(f"Saved: {stage_checkpoint}")
 
         # IMPORTANT: pass forward correctly
-        last_checkpoint = stage_best_checkpoint
+        last_checkpoint = stage_checkpoint
+        prev_env_cfg = deepcopy(env_cfg)
 
     return last_checkpoint
 
