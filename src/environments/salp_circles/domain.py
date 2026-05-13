@@ -59,7 +59,7 @@ class SalpCirclesDomain(BaseScenario):
         self.lidar_range = 0.8
         self.lidar_rays = 2
         self.n_collision_landmarks = kwargs.pop("n_collision_landmarks", 1)
-        self.collision_radius = 1.0
+        self.collision_radius = .1
         self.collision_penalty = -1.0
 
         if self.n_collision_landmarks < 1:
