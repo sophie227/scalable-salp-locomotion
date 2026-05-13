@@ -166,7 +166,7 @@ if __name__ == "__main__":
             stages=stages,
             
             initial_checkpoint=initial_ckpt,
-            curriculum_view=args.get("curriculum_view"),
+            view=args.get("curriculum_view"),
             evaluate=args.get("curriculum_evaluate"),
         )
     else:

@@ -58,8 +58,8 @@ class SalpCirclesDomain(BaseScenario):
         self.min_n_agents = 8
         self.lidar_range = 0.8
         self.lidar_rays = 2
-        self.n_collision_landmarks = kwargs.pop("n_collision_landmarks", 1)
-        self.collision_radius = .1
+        self.n_collision_landmarks = kwargs.pop("n_collision_landmarks", 3)
+        self.collision_radius = .2
         self.collision_penalty = -1.0
 
         if self.n_collision_landmarks < 1:
@@ -75,23 +75,18 @@ class SalpCirclesDomain(BaseScenario):
 
         
         # Environment
-        
-        world_x_dim = self.agent_joint_length * self.n_agents * 4
-        world_y_dim = self.agent_joint_length * self.n_agents * 4
+        self.world_x_dim = self.agent_joint_length * self.n_agents * 4
+        self.world_y_dim = self.agent_joint_length * self.n_agents * 4
+        self.chain_length = (self.n_agents - 1) * self.agent_joint_length
+        self.max_spawn_radius = self.chain_length + self.agent_radius
 
         self.goal_radius = self.agent_joint_length * self.n_agents
-     
+
+        self.free_y_dim = self.world_y_dim - self.goal_radius
+        self.agent_starting_y = -self.world_y_dim + (self.free_y_dim / 2)
 
         # Targets
-        self.target_starting_y = world_y_dim * 0.5
-        self.target_chains = [None for _ in range(batch_dim)]
-
-        self.free_y_dim = world_y_dim - self.goal_radius
-
-        self.agent_starting_y = -world_y_dim + (self.free_y_dim / 2)
-
-        # Targets
-        self.target_starting_y = world_y_dim - (self.free_y_dim / 2)
+        self.target_starting_y = self.world_y_dim - (self.free_y_dim / 2)
         self.target_chains = [None for _ in range(batch_dim)]
 
         if kwargs.pop("shuffle_agents_positions", False):
@@ -115,8 +110,8 @@ class SalpCirclesDomain(BaseScenario):
         # Make world
         world = World(
             batch_dim=batch_dim,
-            x_semidim=world_x_dim,
-            y_semidim=world_y_dim,
+            x_semidim=self.world_x_dim,
+            y_semidim=self.world_y_dim,
             device=device,
             substeps=15,
             collision_force=1500,
@@ -392,12 +387,19 @@ class SalpCirclesDomain(BaseScenario):
 
         return out_of_bounds
 
+    def _safe_spawn_boundary(self, offset: float, semidim: float) -> float:
+        """Return a symmetric spawn half-width that keeps points inside the world."""
+        return min(semidim - self.max_spawn_radius, semidim - abs(offset))
+
     def create_agent_chain(self, theta_min, theta_max, rotation_angle: float = 0.0):
+        y_boundary = self._safe_spawn_boundary(self.agent_starting_y, self.world.y_semidim)
+        x_boundary = self.world.x_semidim - self.max_spawn_radius
+
         x_coord, y_coord = generate_random_coordinate_coordinate_inside_box(
             0.0,
             self.agent_starting_y,
-            self.world.x_semidim - self.agent_radius,
-            self.world.y_semidim - self.agent_radius,
+            x_boundary,
+            y_boundary,
         )
 
         chain = rotate_points(
@@ -419,11 +421,14 @@ class SalpCirclesDomain(BaseScenario):
         if hasattr(self, "fixed_target_chain"):
             return self.fixed_target_chain.clone()
 
+        y_boundary = self._safe_spawn_boundary(self.target_starting_y, self.world.y_semidim)
+        x_boundary = self.world.x_semidim - self.max_spawn_radius
+
         x_coord, y_coord = generate_random_coordinate_coordinate_inside_box(
             0.0,
             self.target_starting_y,
-            self.world.x_semidim - self.agent_radius,
-            self.world.y_semidim - self.agent_radius,
+            x_boundary,
+            y_boundary,
         )
 
         n_bends = random.choice([0, 1])
