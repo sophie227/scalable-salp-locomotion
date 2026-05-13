@@ -25,3 +25,6 @@ saves*
 !yamls/salp_navigate_varying_salp_curr/gcn_dim.yaml
 !yamls/salp_passage_5a_curriculum/gcn.yaml
 !yamls/salp_circles_5a/gcn.yaml
+!yamls/salp_passage_5a_curriculum_stage1/gcn.yaml
+!yamls/salp_passage_5a_curriculum_stage2/gcn.yaml
+!yamls/salp_passage_5a_curriculum_stage3/gcn.yaml
