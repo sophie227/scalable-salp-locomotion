@@ -58,8 +58,12 @@ class SalpCirclesDomain(BaseScenario):
         self.min_n_agents = 8
         self.lidar_range = 0.8
         self.lidar_rays = 2
+        self.n_collision_landmarks = kwargs.pop("n_collision_landmarks", 1)
         self.collision_radius = 1.0
         self.collision_penalty = -1.0
+
+        if self.n_collision_landmarks < 1:
+            raise ValueError("n_collision_landmarks must be >= 1")
 
         self.viewer_zoom = kwargs.pop("viewer_zoom", 1.45)
 
@@ -189,16 +193,17 @@ class SalpCirclesDomain(BaseScenario):
             world.add_joint(joint)
             self.joints.append(joint)
 
-        # Add collision landmark
+        # Add collision landmarks
         self.collision_landmarks = []
-        collision = Landmark(
-            name="collision_landmark",
-            shape=Sphere(self.collision_radius),
-            color=COLOR_MAP["RED"],
-            collide=True,
-        )
-        world.add_landmark(collision)
-        self.collision_landmarks.append(collision)
+        for i in range(self.n_collision_landmarks):
+            collision = Landmark(
+                name=f"collision_landmark_{i}",
+                shape=Sphere(self.collision_radius),
+                color=COLOR_MAP["RED"],
+                collide=True,
+            )
+            world.add_landmark(collision)
+            self.collision_landmarks.append(collision)
 
         # Initialize reward tensors
         self.global_rew = torch.zeros(batch_dim, device=device, dtype=torch.float32)
@@ -348,28 +353,30 @@ class SalpCirclesDomain(BaseScenario):
 
     def _reset_collision_landmarks(self, batch_index=None):
         if batch_index is None:
-            positions = []
-            for _ in range(self.world.batch_dim):
+            for landmark in self.collision_landmarks:
+                positions = []
+                for _ in range(self.world.batch_dim):
+                    x_coord, y_coord = generate_random_coordinate_coordinate_inside_box(
+                        0.0,
+                        0.0,
+                        self.world.x_semidim - self.collision_radius,
+                        self.world.y_semidim - self.collision_radius,
+                    )
+                    positions.append([x_coord, y_coord])
+                positions = torch.tensor(
+                    positions, dtype=torch.float32, device=self.device
+                )
+                landmark.set_pos(positions, batch_index=None)
+        else:
+            for landmark in self.collision_landmarks:
                 x_coord, y_coord = generate_random_coordinate_coordinate_inside_box(
                     0.0,
                     0.0,
                     self.world.x_semidim - self.collision_radius,
                     self.world.y_semidim - self.collision_radius,
                 )
-                positions.append([x_coord, y_coord])
-            positions = torch.tensor(
-                positions, dtype=torch.float32, device=self.device
-            )
-            self.collision_landmarks[0].set_pos(positions, batch_index=None)
-        else:
-            x_coord, y_coord = generate_random_coordinate_coordinate_inside_box(
-                0.0,
-                0.0,
-                self.world.x_semidim - self.collision_radius,
-                self.world.y_semidim - self.collision_radius,
-            )
-            pos = torch.tensor([x_coord, y_coord], dtype=torch.float32, device=self.device)
-            self.collision_landmarks[0].set_pos(pos, batch_index=batch_index)
+                pos = torch.tensor([x_coord, y_coord], dtype=torch.float32, device=self.device)
+                landmark.set_pos(pos, batch_index=batch_index)
 
     def is_out_of_bounds(self, x_coord, y_coord):
         """Boolean mask of shape (n_envs,) – True if agent is out of bounds."""
@@ -519,10 +526,15 @@ class SalpCirclesDomain(BaseScenario):
         collision_tensor = torch.zeros(
             self.world.batch_dim, device=self.device, dtype=torch.int
         )
-        collision_landmark = self.collision_landmarks[0]
 
         for agent in self.world.agents:
-            overlap = (self.world.is_overlapping(agent, collision_landmark) > 0.1).int()
+            overlap = torch.zeros(
+                self.world.batch_dim, device=self.device, dtype=torch.int
+            )
+            for collision_landmark in self.collision_landmarks:
+                overlap |= (
+                    self.world.is_overlapping(agent, collision_landmark) > 0.1
+                ).int()
             collision_tensor |= overlap
 
         return collision_tensor

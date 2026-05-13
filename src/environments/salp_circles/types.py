@@ -44,6 +44,7 @@ class GlobalObservation:
 @dataclass
 class SalpCirclesEnvironmentParams(EnvironmentParams):
     rotating_salps: bool = False
+    # n_collision_landmarks: int = 1
 
 
 class Chain:
