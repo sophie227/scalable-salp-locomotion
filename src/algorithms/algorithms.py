@@ -17,6 +17,7 @@ from environments.salp_passage.types import SalpPassageEnvironmentParams
 from environments.salp_passage_curr.types import SalpPassageCurrEnvironmentParams
 from environments.salp_navigate_wall.types import SalpNavigateWallEnvironmentParams
 from environments.salp_navigate_lidar.types import SalpNavigateLidarEnvironmentParams
+from environments.salp_circles.types import SalpCirclesEnvironmentParams
 
 
 def run_algorithm(
@@ -55,6 +56,9 @@ def run_algorithm(
 
         case EnvironmentEnum.VMAS_SALP_NAVIGATE_WALL:
             env_config = SalpNavigateWallEnvironmentParams(**env_dict)
+        case EnvironmentEnum.VMAS_SALP_CIRCLES:
+            env_config = SalpCirclesEnvironmentParams(**env_dict)
+            
 
         case EnvironmentEnum.VMAS_BALANCE | EnvironmentEnum.VMAS_BUZZ_WIRE:
             env_config = EnvironmentParams(**env_dict)

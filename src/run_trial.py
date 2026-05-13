@@ -8,7 +8,7 @@ from environments.salp_passage_curr.types import SalpPassageCurrEnvironmentParam
 from environments.salp_navigate_wall.types import SalpNavigateWallEnvironmentParams
 from environments.salp_navigate_lidar.types import SalpNavigateLidarEnvironmentParams
 from algorithms.ppo.types import Experiment as PPO_Experiment
-
+from environments.salp_circles.types import SalpCirclesEnvironmentParams
 
 import argparse
 from pathlib import Path
@@ -119,7 +119,9 @@ if __name__ == "__main__":
             base_env = SalpPassageCurrEnvironmentParams(**env_dict)
         case EnvironmentEnum.VMAS_SALP_NAVIGATE_WALL:
             base_env = SalpNavigateWallEnvironmentParams(**env_dict)
-        case _:
+        case EnvironmentEnum.VMAS_SALP_CIRCLES:
+            base_env = SalpCirclesEnvironmentParams(**env_dict)
+        case _: 
             # use generic params for other cases
             from environments.types import EnvironmentParams
             base_env = EnvironmentParams(**env_dict)

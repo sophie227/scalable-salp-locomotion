@@ -11,6 +11,7 @@ from environments.salp_navigate_wall.domain import SalpNavigateDomain as SalpNav
 from environments.salp_navigate_lidar.domain import SalpNavigateLidarDomain
 from environments.salp_passage.domain import SalpPassageDomain as SalpPassageDomainOrig
 from environments.salp_passage_curr.domain import SalpPassageDomain as SalpPassageCurrDomain
+from environments.salp_circles.domain import SalpCirclesDomain
 
 from environments.types import EnvironmentEnum
 
@@ -164,6 +165,18 @@ def create_env(
                 "neighbor_offset": kwargs.get(
                     "neighbor_offset", getattr(env_config, "neighbor_offset", [-3, -2, -1, 0, 1, 2, 3])
                 ),
+            }
+            return create_vmas_env(n_envs, device, seed, env_args)
+
+        case EnvironmentEnum.VMAS_SALP_CIRCLES:
+            env_args = {
+                # Environment data
+                "scenario": SalpCirclesDomain(),
+                "training": kwargs.get("training", True),
+                # Agent data
+                "n_agents": kwargs.get("n_agents", kwargs.get("chain", 1)),
+                "state_representation": env_config.get("state_representation", "local"),
+                "rotating_salps": kwargs.get("rotating_salps", env_config.get("rotating_salps", False)),
             }
             return create_vmas_env(n_envs, device, seed, env_args)
         #     # TODO: add actual mamujoco env code
