@@ -18,6 +18,7 @@ from environments.salp_passage_curr.types import SalpPassageCurrEnvironmentParam
 from environments.salp_navigate_wall.types import SalpNavigateWallEnvironmentParams
 from environments.salp_navigate_lidar.types import SalpNavigateLidarEnvironmentParams
 from environments.salp_circles.types import SalpCirclesEnvironmentParams
+from typing import List, Dict
 
 
 def run_algorithm(
@@ -27,6 +28,7 @@ def run_algorithm(
     algorithm: str,
     environment: str,
     trial_id: str,
+    stages: List[Dict], 
     view: bool = False,
     checkpoint: bool = False,
     evaluate: bool = False,
@@ -71,6 +73,11 @@ def run_algorithm(
             env_config = EnvironmentParams(**env_dict)
 
     env_config.environment = environment
+
+    if stages:
+        for patch in stages:
+            for k, v in patch.items():
+                setattr(env_config, k, v)
 
     # Load experiment config
     exp_file = batch_dir / f"{experiment_name}.yaml"

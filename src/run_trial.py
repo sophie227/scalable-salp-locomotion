@@ -151,6 +151,7 @@ if __name__ == "__main__":
             )
             if default_ckpt_path.is_file():
                 initial_ckpt = default_ckpt_path
+    
 
         run_curriculum(
             base_env=base_env,
@@ -170,6 +171,11 @@ if __name__ == "__main__":
             evaluate=args.get("curriculum_evaluate"),
         )
     else:
+        
+        stages = []
+        if args.get("stages"):
+            stages = yaml.safe_load(args.get("stages"))
+
         # Run learning algorithm normally
         run_algorithm(
             batch_dir=batch_dir,
@@ -180,6 +186,7 @@ if __name__ == "__main__":
             environment=args["environment"],
             view=args["view"],
             checkpoint=args["checkpoint"],
+            stages=stages,
             evaluate=args["evaluate"],
         )
 
