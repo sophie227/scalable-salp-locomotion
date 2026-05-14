@@ -58,7 +58,7 @@ class SalpCirclesDomain(BaseScenario):
         self.min_n_agents = 8
         self.lidar_range = 0.8
         self.lidar_rays = 2
-        self.n_collision_landmarks = kwargs.pop("n_collision_landmarks", 3)
+        self.n_collision_landmarks = kwargs.pop("n_collision_landmarks", 1)
         self.collision_radius = .2
         self.collision_penalty = -1.0
 
@@ -392,7 +392,7 @@ class SalpCirclesDomain(BaseScenario):
         return min(semidim - self.max_spawn_radius, semidim - abs(offset))
 
     def create_agent_chain(self, theta_min, theta_max, rotation_angle: float = 0.0):
-        y_boundary = self._safe_spawn_boundary(self.agent_starting_y, self.world.y_semidim)
+        y_boundary = self._safe_spawn_boundary(self.agent_starting_y-.2, self.world.y_semidim)
         x_boundary = self.world.x_semidim - self.max_spawn_radius
 
         x_coord, y_coord = generate_random_coordinate_coordinate_inside_box(
@@ -415,7 +415,10 @@ class SalpCirclesDomain(BaseScenario):
             ),
             angle_rad=rotation_angle,
         ).to(self.device)
+
+        
         return chain
+    
 
     def create_target_chain(self, rotation_angle: float = 0.0):
         if hasattr(self, "fixed_target_chain"):
