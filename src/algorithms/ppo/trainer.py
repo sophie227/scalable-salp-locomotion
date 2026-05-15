@@ -238,7 +238,9 @@ class PPOTrainer:
                     training_data["last_episode_count"] = total_episodes
 
             # Do training step
+            # if self.learner.buffer.step > 0:
             self.learner.update()
+            self.learner.buffer.clear()
             
 
             # Evaluate model after training iteration

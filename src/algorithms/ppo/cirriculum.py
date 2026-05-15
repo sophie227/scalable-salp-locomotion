@@ -1,6 +1,7 @@
 from copy import deepcopy
 from pathlib import Path
 from typing import List, Dict, Optional
+from _torch.optim import Adam
 
 from algorithms.ppo.types import Experiment
 from environments.types import EnvironmentParams
@@ -37,45 +38,34 @@ def run_curriculum(
     print(f"initial checkpoint: {last_checkpoint}")
 
     for i, patch in enumerate(stages):
-        print(f"\n=== curriculum stage {i+1}/{len(stages)}: {patch} ===")
+        print(f"\ncurriculum stage {i+1}/{len(stages)}: {patch}")
+        env_cfg = deepcopy(base_env)
+        exp_cfg = deepcopy(base_exp)
 
-        if i == 0:
-            env_cfg = deepcopy(base_env)
-            exp_cfg = deepcopy(base_exp)
-        else:
-            env_cfg = deepcopy(prev_env_cfg)
-            exp_cfg = deepcopy(prev_exp_cfg)
-        
         for k, v in patch.items():
             setattr(env_cfg, k, v)
 
         stage_trial_id = f"{trial_id}_stage_{i+1}"
 
-
-        # clone configs so we don’t mutate the caller’s copy
-        env_cfg = deepcopy(base_env)
-        exp_cfg = deepcopy(base_exp)
-
-        # apply the stage-specific overrides
-        for k, v in patch.items():
-            setattr(env_cfg, k, v)
-
         runner = PPO_Runner(
             device=device,
             batch_dir=batch_dir,
             trials_dir=trials_dir,
-            trial_id=trial_id,
-            checkpoint=False,           # we handle loading ourselves
+            trial_id=stage_trial_id,
+            checkpoint=False,
             exp_config=exp_cfg,
             env_config=env_cfg,
         )
 
-        # if we’ve trained something already, load it
         if last_checkpoint is not None and last_checkpoint.is_file():
             runner.trainer.learner.load(last_checkpoint)
 
+            # IMPORTANT: reset optimizer
+            runner.trainer.optimizer = Adam(
+                runner.trainer.learner.parameters(),
+                lr=exp_cfg.params.lr
+            )
 
-        # run one full experiment (honours exp_cfg.params.n_total_steps, etc)
         if view:
             runner.view()
         elif evaluate:
@@ -83,19 +73,15 @@ def run_curriculum(
         else:
             runner.train()
 
-        stage_checkpoint = runner.trainer.dirs["models"] / "checkpoint.pt"
-        # after training save file will be at
         print(f"Finished stage {i+1}")
+
+        # ----- save checkpoint -----
+        stage_checkpoint = runner.trainer.dirs["models"] / "checkpoint.pt"
         print(f"Saved: {stage_checkpoint}")
 
-       # IMPORTANT: pass forward correctly
         last_checkpoint = stage_checkpoint
-  
-        prev_env_cfg = deepcopy(env_cfg)
-        prev_exp_cfg = deepcopy(exp_cfg)
 
     return last_checkpoint
-
 
 
 
