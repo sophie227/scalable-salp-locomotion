@@ -1,7 +1,7 @@
 from copy import deepcopy
 from pathlib import Path
 from typing import List, Dict, Optional
-from _torch.optim import Adam
+from torch.optim import Adam
 
 from algorithms.ppo.types import Experiment
 from environments.types import EnvironmentParams

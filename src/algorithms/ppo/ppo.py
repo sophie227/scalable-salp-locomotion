@@ -33,17 +33,18 @@ class TensorRolloutBuffer:
         self.capacity = steps
 
     def add(self, state, action, logprob, value, reward, done):
-        if self.step >= self.capacity:
-            return  
+        if self.step < self.capacity:
+            self.states[self.step] = state
+            self.actions[self.step] = action
+            self.logprobs[self.step] = logprob
+            self.values[self.step] = value
+            self.rewards[self.step] = reward
+            self.is_terminals[self.step] = done
+            self.step += 1
 
-        self.states[self.step] = state
-        self.actions[self.step] = action
-        self.logprobs[self.step] = logprob
-        self.values[self.step] = value
-        self.rewards[self.step] = reward
-        self.is_terminals[self.step] = done
-
-        self.step += 1
+        else:
+            raise ValueError("Buffer is full. Cannot advance further.")
+            
 
     def clear(self):
         self.step = 0
