@@ -1,13 +1,13 @@
 device: cpu
 model: gcn
 params:
-  batch_size: 5120
-  ent_coef: 0.005
+  batch_size: 2048
+  ent_coef: 0.02
   eps_clip: 0.2
   gamma: 0.99
   grad_clip: 0.5
   lmbda: 0.95
-  lr: 2.0e-04
+  lr: 3.0e-04
   n_minibatches: 10
   n_epochs: 10
   n_total_steps: 10000000.0

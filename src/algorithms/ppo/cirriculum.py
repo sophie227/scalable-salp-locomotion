@@ -83,9 +83,14 @@ def run_curriculum(
         else:
             runner.train()
 
+        stage_checkpoint = runner.trainer.dirs["models"] / "checkpoint.pt"
         # after training save file will be at
-        last_checkpoint = runner.trainer.dirs["models"] / "best_checkpoint.pt"
-        print(f"Finished stage {i+1}, best model saved to {last_checkpoint}")
+        print(f"Finished stage {i+1}")
+        print(f"Saved: {stage_checkpoint}")
+
+       # IMPORTANT: pass forward correctly
+        last_checkpoint = stage_checkpoint
+  
         prev_env_cfg = deepcopy(env_cfg)
         prev_exp_cfg = deepcopy(exp_cfg)
 
