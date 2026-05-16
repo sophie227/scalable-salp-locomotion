@@ -10,7 +10,7 @@ base_path: "/home/sophie/scalable-salp-locomotion/src/experiments/results/"
 # batches: ["salp_passage_5a_curriculum"]
 # batches: ["salp_circles_5a"]
 # batches: [ "salp_passage_5a_curriculum","salp_passage_5a_curriculum_stage1"]
-batches: [ "salp_passage_5a_curriculum_stage3"]
+batches: [ "salp_passage_5a_curriculum_stage0"]
 
 
 

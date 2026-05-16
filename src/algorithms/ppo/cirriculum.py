@@ -37,6 +37,9 @@ def run_curriculum(
     print("start")
     print(f"initial checkpoint: {last_checkpoint}")
 
+    success_thresh = .90
+    max_attempts = 20
+
     for i, patch in enumerate(stages):
         print(f"\ncurriculum stage {i+1}/{len(stages)}: {patch}")
         env_cfg = deepcopy(base_env)
@@ -60,26 +63,32 @@ def run_curriculum(
         if last_checkpoint is not None and last_checkpoint.is_file():
             runner.trainer.learner.load(last_checkpoint)
 
-            # IMPORTANT: reset optimizer
-            runner.trainer.optimizer = Adam(
-                runner.trainer.learner.parameters(),
-                lr=exp_cfg.params.lr
-            )
+        stage_complete = False
+        attempt = 0
+        
+        while not stage_complete:
+            attempt += 1
+            runner.trainer.train()
+            success_rate = runner.evaluate()
+            print(f" Stage {i+1} Success rate: {success_rate:.2%}")
 
-        if view:
-            runner.view()
-        elif evaluate:
-            runner.evaluate()
-        else:
-            runner.train()
+            stage_checkpoint = runner.trainer.dirs["models"] / f"stage_{i+1}_checkpoint.pt"
+            last_checkpoint = stage_checkpoint
 
-        print(f"Finished stage {i+1}")
+            if success_rate >= success_thresh:
+                print(f"Stage {i+1} complete with success rate {success_rate:.2%}")
+                stage_complete = True
+            
+            elif attempt >= max_attempts:
+                print(f"Stage {i+1} failed to reach success threshold after {attempt} attempts. Moving to next stage.")
+                stage_complete = True
 
-        # ----- save checkpoint -----
-        stage_checkpoint = runner.trainer.dirs["models"] / "checkpoint.pt"
-        print(f"Saved: {stage_checkpoint}")
+            # # IMPORTANT: reset optimizer
+            # runner.trainer.learner.optimizer = Adam(
+            #     runner.trainer.learner.policy.parameters(),
+            #     lr=exp_cfg.params["lr"]
+            # )
 
-        last_checkpoint = stage_checkpoint
 
     return last_checkpoint
 
