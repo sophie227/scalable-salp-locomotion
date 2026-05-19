@@ -444,7 +444,7 @@ class SalpPassageDomain(BaseScenario):
             centroid_dist = torch.norm(chain_centroid - target_center, dim=-1)
             self.prev_dist = centroid_dist * self.prev_dist_factor
 
-            
+            print("RESET using neighbor_offset:", self.neighbor_offset)
 
         else:
             # Reset steps
@@ -770,7 +770,7 @@ class SalpPassageDomain(BaseScenario):
             print(f"goal_dist: {goal_dist}")
             # dist_rew = calculate_distance_reward(chain_centroid, target_center)
             current_dist = goal_dist * self.prev_dist_factor
-
+            print("ACTIVE neighbor_offset:", self.neighbor_offset)
             # Distance reward
             # dist_rew = calculate_distance_reward(agent_pos, target_pos)
             # raw_distance_reward = -1 * dist_rew

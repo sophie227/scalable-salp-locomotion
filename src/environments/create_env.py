@@ -177,6 +177,10 @@ def create_env(
                 "n_agents": kwargs.get("n_agents", kwargs.get("chain", 1)),
                 "state_representation": env_config.get("state_representation", "local"),
                 "rotating_salps": kwargs.get("rotating_salps", env_config.get("rotating_salps", False)),
+                "n_collision_landmarks": kwargs.get(
+                    "n_collision_landmarks",
+                    env_config.get("n_collision_landmarks", 1),
+                ),
             }
             return create_vmas_env(n_envs, device, seed, env_args)
         #     # TODO: add actual mamujoco env code
