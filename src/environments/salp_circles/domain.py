@@ -880,10 +880,10 @@ class SalpCirclesDomain(BaseScenario):
         out_of_bounds = self.is_out_of_bounds(
             self.world.x_semidim, self.world.y_semidim
         )
-        has_collided = self.check_collisions()
+        # has_collided = self.check_collisions()
         timeout = self.steps >= self.max_steps
 
-        return target_reached | out_of_bounds | has_collided | timeout
+        return target_reached | out_of_bounds  | timeout
 
     def info(self, agent: Agent) -> Dict[str, Tensor]:
         chain_pos = self.get_agent_chain_position()

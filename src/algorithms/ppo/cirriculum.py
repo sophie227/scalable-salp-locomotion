@@ -35,7 +35,13 @@ def run_curriculum(
 
     last_checkpoint = initial_checkpoint
 
-    print(f"[Curriculum] Starting training")
+    mode = "training"
+    if view:
+        mode = "view"
+    elif evaluate:
+        mode = "evaluate"
+
+    print(f"[Curriculum] Starting curriculum {mode} mode")
     print(f"[Curriculum] Initial checkpoint: {last_checkpoint}")
 
     for i, patch in enumerate(stages):
@@ -57,10 +63,12 @@ def run_curriculum(
             device=device,
             batch_dir=batch_dir,
             trials_dir=trials_dir,
-            trial_id=stage_trial_id,   
-            checkpoint=False,           
+            trial_id=stage_trial_id,
+            checkpoint=False,
             exp_config=exp_cfg,
             env_config=env_cfg,
+            curriculum=True,
+            curriculum_stage=stage_id,
         )
 
         # --------------------------------------------------
@@ -78,14 +86,19 @@ def run_curriculum(
 
     
         if view:
+            print(f"[Stage {stage_id}] Running view mode for trial {stage_trial_id}")
             runner.view()
+            print(f"[Stage {stage_id}] View complete. Logs and video saved under {runner.trainer.dirs['logs']} and {runner.trainer.dirs['videos']}")
         elif evaluate:
+            print(f"[Stage {stage_id}] Running evaluation mode for trial {stage_trial_id}")
             runner.evaluate()
+            print(f"[Stage {stage_id}] Evaluation complete. Results saved under {runner.trainer.dirs['logs']} / evaluation.dat")
         else:
+            print(f"[Stage {stage_id}] Training stage {stage_id} with patch {patch}")
             runner.train()
+            print(f"[Stage {stage_id}] Training complete for trial {stage_trial_id}")
 
- 
-        last_checkpoint = runner.trainer.dirs["models"] / "best_checkpoint.pt"
+        last_checkpoint = runner.trainer.dirs["models"] / "checkpoint.pt"
 
         if last_checkpoint.exists():
             print(f"[Stage {stage_id}] Saved best model: {last_checkpoint}")

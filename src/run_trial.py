@@ -85,7 +85,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--curriculum_view",
         action="store_true",
-        help="Run curriculum stages in view mode instead of training",
+        help="Run curriculum stages in view mode instead of training; prints current stage and status",
     )
     parser.add_argument(
         "--curriculum_evaluate",
