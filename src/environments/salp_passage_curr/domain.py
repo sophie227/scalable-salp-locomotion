@@ -85,7 +85,7 @@ class SalpPassageDomain(BaseScenario):
 
         neighbor_offset = kwargs.pop("neighbor_offset", None)
         if neighbor_offset is None:
-            self.neighbor_offset = [-3, -2, -1, 0, 1, 2, 3]
+            self.neighbor_offset = [ -1, 0, 1]
         elif isinstance(neighbor_offset, int):
             self.neighbor_offset = list(range(-neighbor_offset, neighbor_offset + 1))
         elif isinstance(neighbor_offset, str):

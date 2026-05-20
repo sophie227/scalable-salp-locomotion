@@ -43,6 +43,7 @@ class PPOTrainer:
         self.dirs = dirs
 
         self.checkpoint = checkpoint
+        self.env_config = env_config
 
         # Curriculum training attributes
         self.curriculum = curriculum
@@ -50,6 +51,14 @@ class PPOTrainer:
 
         # Initialize learner early so we can load checkpoints
         self._init_learner()
+
+    def _get_env_kwargs(self):
+        env_kwargs = {
+            k: v
+            for k, v in self.env_config.__dict__.items()
+            if k not in {"n_agents", "n_envs", "environment"}
+        }
+        return env_kwargs
 
     def _init_learner(self):
         # Set a temporary seed for env creation
@@ -66,6 +75,7 @@ class PPOTrainer:
             device=self.device,
             env_name=self.env_name,
             seed=temp_seed,
+            **self._get_env_kwargs(),
         )
 
         # Set state and action dimensions
@@ -112,6 +122,7 @@ class PPOTrainer:
             device=self.device,
             env_name=self.env_name,
             seed=random_seed,
+            **self._get_env_kwargs(),
         )
 
         # Create training data logging object
@@ -316,6 +327,7 @@ class PPOTrainer:
             device=self.device,
             env_name=self.env_name,
             seed=random.randint(0, 10000),
+            **self._get_env_kwargs(),
         )
 
         done = torch.zeros((evaluations), device=self.device)

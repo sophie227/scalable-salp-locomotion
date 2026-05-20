@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import List
 from environments.types import EnvironmentParams
 import torch
 
@@ -44,6 +45,7 @@ class GlobalObservation:
 @dataclass
 class SalpPassageCurrEnvironmentParams(EnvironmentParams):
     rotating_salps: bool = False
+    neighbor_offset: List[int] = None
 
 
 class Chain:

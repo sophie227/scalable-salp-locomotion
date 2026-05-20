@@ -77,6 +77,11 @@ def run_algorithm(
     if stages:
         for patch in stages:
             for k, v in patch.items():
+                if (
+                    environment == EnvironmentEnum.VMAS_SALP_PASSAGE_CURR
+                    and k in {"n_agents", "chain"}
+                ):
+                    continue
                 setattr(env_config, k, v)
 
     # Load experiment config
