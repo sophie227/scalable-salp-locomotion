@@ -7,17 +7,17 @@ datapoints: [30000, 30000]
 base_path: "/home/sophie/scalable-salp-locomotion/src/experiments/results/"
 
 # batches: ["salp_circles_5a"]
-batches: ["salp_passage_5a_curriculum_stage2"]
+# batches: ["salp_passage_5a_curriculum"]
 # batches: ["salp_circles_5a"]
 # batches: [ "salp_passage_5a_curriculum","salp_passage_5a_curriculum_stage1"]
 # batches: [ "salp_circles_5a"]
-# batches: ["salp_navigate_varying_salp_curr"]
+batches: ["salp_navigate_varying_salp_curr"]
 
 
 
 
 
-experiments: ["gcn"]
+experiments: ["gcn_dim"]
 # experiments: ["mlp", "gcn", "gat", "graph_transformer", "gcn_full", "gat_full", "graph_transformer_full"]
 # experiments: ["gcn", "gat", "graph_transformer", "gcn_full", "gat_full", "graph_transformer_full"]
 

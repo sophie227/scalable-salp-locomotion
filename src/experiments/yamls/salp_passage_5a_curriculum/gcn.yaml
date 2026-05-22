@@ -2,7 +2,7 @@ device: cpu
 model: gcn
 params:
   batch_size: 5120
-  ent_coef: 0.005
+  ent_coef: 0.02
   eps_clip: 0.2
   gamma: 0.99
   grad_clip: 0.5

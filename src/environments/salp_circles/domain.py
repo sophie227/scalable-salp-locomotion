@@ -60,7 +60,7 @@ class SalpCirclesDomain(BaseScenario):
         self.lidar_rays = 2
         self.n_collision_landmarks = kwargs.pop("n_collision_landmarks", 1)
         self.collision_radius = .2
-        self.collision_penalty = -1.0
+        self.collision_penalty = -0.05
 
         if self.n_collision_landmarks < 1:
             raise ValueError("n_collision_landmarks must be >= 1")
@@ -578,7 +578,7 @@ class SalpCirclesDomain(BaseScenario):
             # current_dist = dist_rew * self.prev_dist_factor
             # print(f"dr {current_dist}")
             print(f"prev_dist: {self.prev_dist}")
-            self.distance_rew = self.prev_dist - current_dist
+            self.distance_rew = 5.0 *(self.prev_dist - current_dist)
             # self.distance_rew = torch.where(self.distance_rew < 0, self.distance_rew * 10, self.distance_rew )
             print(f"distance reward: {self.distance_rew}")
             # self.distance_rew = torch.exp(current_dist) 

@@ -63,7 +63,7 @@ class SalpPassageDomain(BaseScenario):
        
         self.passage_entrance_bonus = .5
         self.passage_exit_bonus = .5
-        self.collision_penalty = -1
+        self.collision_penalty = -.05
         self.pass_entrance_y_threshold = -0.2
         self.pass_exit_y_threshold = 0.2
 
@@ -778,7 +778,7 @@ class SalpPassageDomain(BaseScenario):
             # current_dist = dist_rew * self.prev_dist_factor
             # print(f"dr {current_dist}")
             print(f"prev_dist: {self.prev_dist}")
-            self.distance_rew = self.prev_dist - current_dist
+            self.distance_rew = 5.0 *(self.prev_dist - current_dist)
             # self.distance_rew = torch.where(self.distance_rew < 0, self.distance_rew * 10, self.distance_rew )
             print(f"distance reward: {self.distance_rew}")
             # self.distance_rew = torch.exp(current_dist) 
@@ -1149,10 +1149,10 @@ class SalpPassageDomain(BaseScenario):
         out_of_bounds = self.is_out_of_bounds(
             self.world.x_semidim, self.world.y_semidim
         )
-        has_collided = self.check_collisions()
+        # has_collided = self.check_collisions()
         timeout = self.steps >= self.max_steps
 
-        return target_reached | out_of_bounds | has_collided | timeout
+        return target_reached | out_of_bounds | timeout
 
     def info(self, agent: Agent) -> Dict[str, Tensor]:
         chain_pos = self.get_agent_chain_position()

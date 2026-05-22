@@ -45,7 +45,7 @@ def run_curriculum(
     print(f"[Curriculum] Initial checkpoint: {last_checkpoint}")
 
     for i, patch in enumerate(stages):
-        stage_id = i + 1
+        stage_id = 2
         stage_trial_id = f"{trial_id}_stage_{stage_id}"
 
         print(f"\n=== Stage {stage_id}/{len(stages)}: {patch} ===")
