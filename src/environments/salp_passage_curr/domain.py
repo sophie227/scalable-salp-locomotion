@@ -737,7 +737,7 @@ class SalpPassageDomain(BaseScenario):
                 overlap_mask[indices] = 0
 
                 collision_tensor += (
-                    (self.world.is_overlapping(agent, passage) > .1).int()
+                    (self.world.is_overlapping(agent, passage) > 0.005).int()
                     * overlap_mask
                     * neighbor_check
                 )

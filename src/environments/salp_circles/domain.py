@@ -60,7 +60,7 @@ class SalpCirclesDomain(BaseScenario):
         self.lidar_rays = 2
         self.n_collision_landmarks = kwargs.pop("n_collision_landmarks", 1)
         self.collision_radius = .2
-        self.collision_penalty = -0.05
+        self.collision_penalty = -0.1
 
         if self.n_collision_landmarks < 1:
             raise ValueError("n_collision_landmarks must be >= 1")
@@ -541,7 +541,7 @@ class SalpCirclesDomain(BaseScenario):
             )
             for collision_landmark in self.collision_landmarks:
                 overlap |= (
-                    self.world.is_overlapping(agent, collision_landmark) > 0.1
+                    self.world.is_overlapping(agent, collision_landmark) > 0.0
                 ).int()
             collision_tensor |= overlap
 
