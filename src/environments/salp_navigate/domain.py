@@ -627,7 +627,7 @@ class SalpNavigateDomain(BaseScenario):
             # self.raw_dist_rew = calculate_distance_reward(agent_pos, target_pos)
             # current_dist = self.raw_dist_rew * self.prev_dist_factor
             self.distance_rew = self.prev_dist - current_dist
-            self.distance_rew = torch.where(self.distance_rew < 0.001, self.distance_rew * 50, self.distance_rew )
+            # self.distance_rew = torch.where(self.distance_rew < 0.001, self.distance_rew * 10, self.distance_rew )
             self.prev_dist = current_dist
             print(f"Distance reward: {self.distance_rew}")
 

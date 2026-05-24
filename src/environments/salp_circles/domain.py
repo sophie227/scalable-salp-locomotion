@@ -580,7 +580,7 @@ class SalpCirclesDomain(BaseScenario):
             print(f"prev_dist: {self.prev_dist}")
             self.distance_rew = self.prev_dist - current_dist
             print(f"raw distance reward: {self.distance_rew}")
-            self.distance_rew = torch.where(self.distance_rew < 0.001, self.distance_rew * 50, self.distance_rew )
+            self.distance_rew = torch.where(self.distance_rew < 0.001, self.distance_rew * 10, self.distance_rew )
             print(f"distance reward: {self.distance_rew}")
             # self.distance_rew = torch.exp(current_dist) 
             # print(f"distance reward {self.distance_rew}")
@@ -630,7 +630,7 @@ class SalpCirclesDomain(BaseScenario):
 
             # Mix all rewards
             self.global_rew = (
-                (5.0 * self.distance_rew)
+                self.distance_rew
                 + collision_penalty
                 + goal_reached_rew
               

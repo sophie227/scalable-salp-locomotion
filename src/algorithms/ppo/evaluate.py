@@ -43,6 +43,7 @@ def evaluate(
         exp_config.model,
         env_config.n_agents,
     )
+    
 
     # get_attention_data(
     #     exp_config,
