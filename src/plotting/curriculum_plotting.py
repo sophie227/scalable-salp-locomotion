@@ -307,7 +307,7 @@ for exp_key, data_array in experiment_data.items():
 ax.legend(loc='best')
 
 ax.set_xlabel("Iterations")
-ax.set_ylabel("Average Reward")
+ax.set_ylabel("Average Global Reward")
 ax.set_title("Learning Curves with Standard Error")
 
 ax.grid(True, alpha=0.3)
