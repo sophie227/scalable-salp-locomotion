@@ -31,3 +31,5 @@ saves*
 !yamls/salp_passage_5a_curriculum_stage0/gcn.yaml
 !yamls/salp_passage_5a_curriculum_auto/gcn.yaml
 !yamls/salp_circles_5a_baseline/gcn.yaml
+!yamls/salp_circles_5a_baseline_stage1/gcn.yaml
+!yamls/salp_circles_5a_baseline_stage2/gcn.yaml
