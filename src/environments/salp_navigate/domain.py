@@ -361,6 +361,8 @@ class SalpNavigateDomain(BaseScenario):
             target_center = t_pos.mean(dim=1)
             centroid_dist = torch.norm(chain_centroid - target_center, dim=-1)
             self.prev_dist = centroid_dist * self.prev_dist_factor
+
+            self.initial_chain_length = self.compute_chain_length()
             
         else:
             # Reset steps
@@ -436,7 +438,9 @@ class SalpNavigateDomain(BaseScenario):
             self.prev_dist[env_index] = (
                 dist_rew[env_index] * self.prev_dist_factor
             )
-
+            self.initial_chain_length[env_index] = (
+            self.compute_chain_length()[env_index]
+)
     def is_out_of_bounds(self, x_coord, y_coord):
         """Boolean mask of shape (n_envs,) – True if agent is out of bounds."""
         out_of_bounds = []
@@ -958,12 +962,17 @@ class SalpNavigateDomain(BaseScenario):
     def info(self, agent: Agent) -> Dict[str, Tensor]:
         chain_pos = self.get_agent_chain_position()
         target_pos = self.get_target_chain_position()
+
+        current_chain_length = self.compute_chain_length()
+        crumple_score = self.compute_crumple_score()
         world_dims = torch.tensor([self.world_x_dim, self.world_y_dim])
         return {
             "target_pose": target_pos,
             "chain_pose": chain_pos,
             "world_dims": world_dims,
             "frechet_rew": self.raw_frech_rew,
+            "chain_length": current_chain_length,
+            "crumple_score": crumple_score,
          
         }
 
@@ -1000,3 +1009,32 @@ class SalpNavigateDomain(BaseScenario):
         geoms.append(range_circle)
 
         return geoms
+
+
+
+    def compute_chain_length(self):
+
+        positions = torch.stack(
+            [agent.state.pos for agent in self.agents],
+            dim=0
+        )  # (n_agents, batch_dim, 2)
+
+        diffs = positions[1:] - positions[:-1]
+
+        # norm over XY dimension
+        segment_lengths = torch.norm(diffs, dim=-1)
+
+        # sum over chain segments
+        chain_length = segment_lengths.sum(dim=0)
+
+        return chain_length
+    
+    def compute_crumple_score(self):
+
+        current_length = self.compute_chain_length()
+
+        crumple_score = 1 - (
+            current_length / self.initial_chain_length
+        )
+
+        return crumple_score

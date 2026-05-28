@@ -123,7 +123,8 @@ def get_scalability_data(
             d_state,
             d_action,
         )
-        learner.load(dirs["models"] / "best_model")
+        # learner.load(dirs["models"] / "best_model")
+        learner.load("/home/sophie/scalable-salp-locomotion/src/experiments/results/salp_navigate_varying_salp_curr/gcn_dim/0/models/best_checkpoint")
 
         # Set policy to evaluation mode
         learner.policy.eval()
@@ -199,6 +200,10 @@ def get_scalability_data(
         data[n_agents]["rewards"] = rewards
         data[n_agents]["dist_rewards"] = distance_rewards
         data[n_agents]["frech_rewards"] = frechet_rewards
+
+        data[n_agents].setdefault(n_mask+1, {})["chain_lengths"] = chain_lengths
+
+        data[n_agents].setdefault(n_mask+1, {})["crumple_scores"] = crumple_scores
 
         print(f"Done evaluating {n_agents}")
 
@@ -354,7 +359,9 @@ def get_disabled_scalability_data(
                 2,
             )
 
-            learner.load(dirs["models"] / "best_model")
+            # learner.load(dirs["models"] / "best_model")
+            learner.load("/home/sophie/scalable-salp-locomotion/src/experiments/results/salp_navigate_varying_salp_curr/gcn_dim/0/models/best_checkpoint")
+
 
             # Set policy to evaluation mode
             learner.policy.eval()
@@ -362,6 +369,8 @@ def get_disabled_scalability_data(
             rewards = []
             distance_rewards = []
             frechet_rewards = []
+            chain_lengths = []
+            crumple_scores = []
             episode_count = 0
             state = env.reset()
             cumulative_rewards = torch.zeros(
@@ -416,10 +425,17 @@ def get_disabled_scalability_data(
                 action_tensor_list = torch.unbind(diff_tensor)
 
                 state, reward, done, info = env.step(action_tensor_list)
+                chain_lengths.append(
+                    info[0]["chain_length"].mean().item()
+                )
+
+                crumple_scores.append(
+                    info[0]["crumple_score"].mean().item()
+                )
 
                 cumulative_rewards += reward[0]
-                cum_frech_rewards = info[0]["frechet_rew"]
-                cum_dist_rewards = info[0]["distance_rew"]
+                # cum_frech_rewards = info[0]["frechet_rew"]
+                # cum_dist_rewards = info[0]["distance_rew"]
 
                 if torch.any(done):
 
@@ -444,6 +460,10 @@ def get_disabled_scalability_data(
             data[n_agents].setdefault(n_mask+1, {})["rewards"] = rewards
             data[n_agents].setdefault(n_mask+1, {})["dist_rewards"] = distance_rewards
             data[n_agents].setdefault(n_mask+1, {})["frech_rewards"] = frechet_rewards
+
+            data[n_agents].setdefault(n_mask+1, {})["chain_lengths"] = chain_lengths
+
+            data[n_agents].setdefault(n_mask+1, {})["crumple_scores"] = crumple_scores
 
             print(f"Done evaluating {n_agents} agents, mask {mask_name}")
 
@@ -496,7 +516,9 @@ def get_attention_data(
             d_state,
             d_action,
         )
-        learner.load(dirs["models"] / "best_model")
+        # learner.load(dirs["models"] / "best_model")
+        learner.load("/home/sophie/scalable-salp-locomotion/src/experiments/results/salp_navigate_varying_salp_curr/gcn_dim/0/models/best_checkpoint")
+
 
         # Set policy to evaluation mode
         learner.policy.eval()
