@@ -51,6 +51,7 @@ def run_curriculum(
         print(f"\n=== Stage {stage_id}/{len(stages)}: {patch} ===")
 
 
+
         env_cfg = deepcopy(base_env)
         exp_cfg = deepcopy(base_exp)
 
@@ -74,16 +75,32 @@ def run_curriculum(
         # --------------------------------------------------
         # 3. Load previous policy (true curriculum transfer)
         # --------------------------------------------------
-        if last_checkpoint is not None and last_checkpoint.exists():
-            print(f"[Stage {stage_id}] Loading checkpoint: {last_checkpoint}")
+        if view: 
+            # checkpoint_path = Path(
+            # "/home/sophie/scalable-salp-locomotion/src/experiments/results/"
+            # "salp_circles_5a/gcn/0_stage_2/models/checkpoint")
+            checkpoint_path = Path("/home/sophie/scalable-salp-locomotion/src/experiments/results/salp_navigate_varying_salp_curr/gcn_dim/6_stage_2/models/checkpoint")
 
-            checkpoint = runner.trainer.learner.load(last_checkpoint)
+            print(f"[Stage {stage_id}] Loading checkpoint: {checkpoint_path}")
+
+            checkpoint = runner.trainer.learner.load(checkpoint_path)
+        else:
+                    print(f"[Stage {stage_id}] No checkpoint loaded (training from scratch)")
+
+        # if last_checkpoint is not None and last_checkpoint.exists():
+        #     print(f"[Stage {stage_id}] Loading checkpoint: {last_checkpoint}")
+
+        #     checkpoint = runner.trainer.learner.load(last_checkpoint)
 
         
 
-        else:
-            print(f"[Stage {stage_id}] No checkpoint loaded (training from scratch)")
+        # else:
+        #     print(f"[Stage {stage_id}] No checkpoint loaded (training from scratch)")
 
+
+        
+
+        # 
     
         if view:
             print(f"[Stage {stage_id}] Running view mode for trial {stage_trial_id}")

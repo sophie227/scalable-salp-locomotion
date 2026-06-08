@@ -8,6 +8,10 @@ import numpy as np
 import pickle
 import yaml
 
+from scipy.signal import savgol_filter
+
+
+
 plt.rcParams.update({'font.size': 16})
 
 
@@ -102,10 +106,15 @@ for exp_key, data_array in experiment_data.items():
         continue
 
     mean_rewards = np.nanmean(data_array, axis=0)
+    
+    smooth = savgol_filter(mean_rewards,
+                       window_length=21,
+                       polyorder=3)
 
     n_trials = np.sum(~np.isnan(data_array), axis=0)
 
     std_rewards = np.nanstd(data_array, axis=0)
+
 
     se_rewards = std_rewards / np.sqrt(np.maximum(n_trials, 1))
 
@@ -117,9 +126,12 @@ for exp_key, data_array in experiment_data.items():
 
     ax.plot(
         x,
-        mean_rewards,
+        smooth,
         linewidth=2,
         label=exp_key,
+        # label= "8 agent salp chain",
+        # label=["3 obstacles", "2 obstacles"],
+    
         color=color
     )
 
@@ -134,6 +146,8 @@ for exp_key, data_array in experiment_data.items():
     print(f"{exp_key}: {len(data_array)} trials")
 
 ax.legend(loc='best')
+ax.set_ylim(bottom=-15, top=7)  # Set y-axis lower limit to 0
+ax.set_xlim(left=-50, right=500)
 
 ax.set_xlabel("Iterations")
 ax.set_ylabel("Average Global Reward")

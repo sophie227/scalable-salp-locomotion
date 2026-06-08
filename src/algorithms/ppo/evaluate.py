@@ -18,12 +18,13 @@ def evaluate(
     device: str,
     trial_id: str,
     dirs: dict,
-    disable_subsets: bool = True,
+    disable_subsets: bool = False,
 ):
 
     params = Params(**exp_config.params)
 
-    random_seeds = [56, 948, 8137, 6347, 1998]
+    random_seeds = [56, 948, 8137, 6347, 1998, 1025, 2025]
+    # random_seeds=[1025, 1025, 1025, 1025, 1025, 1025, 1025 ]
 
     # Create environment to get dimension data
     dummy_env = create_env(
@@ -93,8 +94,8 @@ def get_scalability_data(
     n_agents: int,
     d_state: int,
     d_action: int,
-    n_rollouts: int = 30,
-    extra_agents: int = 40,
+    n_rollouts: int = 5,
+    extra_agents: int = 32,
 ):
     n_agents_list = list(range(4, extra_agents + 1, 4))
     data = {n_agents: {} for n_agents in n_agents_list}
@@ -124,7 +125,8 @@ def get_scalability_data(
             d_action,
         )
         # learner.load(dirs["models"] / "best_model")
-        learner.load("/home/sophie/scalable-salp-locomotion/src/experiments/results/salp_navigate_varying_salp_curr/gcn_dim/0/models/best_checkpoint")
+        # learner.load("/home/sophie/scalable-salp-locomotion/src/experiments/results/salp_navigate_varying_salp_curr/gcn_dim/6_stage_4/models/best_checkpoint")
+        learner.load("/home/sophie/scalable-salp-locomotion/src/experiments/results/salp_navigate_varying_baseline/gcn_dim/6/models/best_checkpoint")
 
         # Set policy to evaluation mode
         learner.policy.eval()
@@ -132,6 +134,8 @@ def get_scalability_data(
         rewards = []
         distance_rewards = []
         frechet_rewards = []
+        chain_lengths = []
+        crumple_scores = []
         episode_count = 0
         state = env.reset()
         cumulative_rewards = torch.zeros(n_rollouts, dtype=torch.float32, device=device)
@@ -139,7 +143,7 @@ def get_scalability_data(
         cum_frech_rewards = torch.zeros(n_rollouts, dtype=torch.float32, device=device)
         episode_len = torch.zeros(n_rollouts, dtype=torch.int32, device=device)
 
-        for step in range(0, params.n_max_steps_per_episode):
+        for step in range(0, 512):
 
             action = torch.clamp(
                 learner.deterministic_action(
@@ -163,15 +167,22 @@ def get_scalability_data(
             action_tensor_list = torch.unbind(action_tensor)
 
             state, reward, done, info = env.step(action_tensor_list)
+            chain_lengths.append(
+                    info[0]["chain_length"].mean().item()
+                )
+
+            crumple_scores.append(
+                info[0]["crumple_score"].mean().item()
+            )
 
             cumulative_rewards += reward[0]
-            cum_frech_rewards = info[0]["frechet_rew"]
-            cum_dist_rewards = info[0]["distance_rew"]
+            # cum_frech_rewards = info[0]["frechet_rew"]
+            # cum_dist_rewards = info[0]["distance_rew"]
 
             episode_len += torch.ones(n_rollouts, dtype=torch.int32, device=device)
 
             # Create timeout boolean mask
-            timeout = episode_len == params.n_max_steps_per_episode
+            timeout = episode_len == 512
 
             if torch.any(done) or torch.any(timeout):
 
@@ -201,9 +212,9 @@ def get_scalability_data(
         data[n_agents]["dist_rewards"] = distance_rewards
         data[n_agents]["frech_rewards"] = frechet_rewards
 
-        data[n_agents].setdefault(n_mask+1, {})["chain_lengths"] = chain_lengths
+        data[n_agents]["chain_lengths"] = chain_lengths
 
-        data[n_agents].setdefault(n_mask+1, {})["crumple_scores"] = crumple_scores
+        data[n_agents]["crumple_scores"] = crumple_scores
 
         print(f"Done evaluating {n_agents}")
 
@@ -360,7 +371,8 @@ def get_disabled_scalability_data(
             )
 
             # learner.load(dirs["models"] / "best_model")
-            learner.load("/home/sophie/scalable-salp-locomotion/src/experiments/results/salp_navigate_varying_salp_curr/gcn_dim/0/models/best_checkpoint")
+            # learner.load("/home/sophie/scalable-salp-locomotion/src/experiments/results/salp_navigate_varying_salp_curr/gcn_dim/6_stage_4/models/best_checkpoint")
+            learner.load("/home/sophie/scalable-salp-locomotion/src/experiments/results/salp_navigate_varying_baseline/gcn_dim/6/models/best_checkpoint")
 
 
             # Set policy to evaluation mode
@@ -469,7 +481,7 @@ def get_disabled_scalability_data(
 
         # Store environment
         with open(
-            dirs["logs"] / f"disabled_mask_eval.dat", "wb"
+            dirs["logs"] / f"crumple_data_1025_1.dat", "wb"
         ) as f:
             dill.dump(data, f)
 
@@ -517,7 +529,8 @@ def get_attention_data(
             d_action,
         )
         # learner.load(dirs["models"] / "best_model")
-        learner.load("/home/sophie/scalable-salp-locomotion/src/experiments/results/salp_navigate_varying_salp_curr/gcn_dim/0/models/best_checkpoint")
+        # learner.load("/home/sophie/scalable-salp-locomotion/src/experiments/results/salp_navigate_varying_salp_curr/gcn_dim/6_stage_4/models/best_checkpoint")
+        learner.load("/home/sophie/scalable-salp-locomotion/src/experiments/results/salp_navigate_varying_baseline/gcn_dim/6/models/best_checkpoint")
 
 
         # Set policy to evaluation mode
