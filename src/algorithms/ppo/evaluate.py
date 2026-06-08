@@ -125,8 +125,8 @@ def get_scalability_data(
             d_action,
         )
         # learner.load(dirs["models"] / "best_model")
-        # learner.load("/home/sophie/scalable-salp-locomotion/src/experiments/results/salp_navigate_varying_salp_curr/gcn_dim/6_stage_4/models/best_checkpoint")
-        learner.load("/home/sophie/scalable-salp-locomotion/src/experiments/results/salp_navigate_varying_baseline/gcn_dim/6/models/best_checkpoint")
+        learner.load("/home/sophie/scalable-salp-locomotion/src/experiments/results/salp_navigate_varying_salp_curr/gcn_dim/6_stage_4/models/best_checkpoint")
+        # learner.load("/home/sophie/scalable-salp-locomotion/src/experiments/results/salp_navigate_varying_baseline/gcn_dim/6/models/best_checkpoint")
 
         # Set policy to evaluation mode
         learner.policy.eval()
@@ -371,8 +371,8 @@ def get_disabled_scalability_data(
             )
 
             # learner.load(dirs["models"] / "best_model")
-            # learner.load("/home/sophie/scalable-salp-locomotion/src/experiments/results/salp_navigate_varying_salp_curr/gcn_dim/6_stage_4/models/best_checkpoint")
-            learner.load("/home/sophie/scalable-salp-locomotion/src/experiments/results/salp_navigate_varying_baseline/gcn_dim/6/models/best_checkpoint")
+            learner.load("/home/sophie/scalable-salp-locomotion/src/experiments/results/salp_navigate_varying_salp_curr/gcn_dim/6_stage_4/models/best_checkpoint")
+            # learner.load("/home/sophie/scalable-salp-locomotion/src/experiments/results/salp_navigate_varying_baseline/gcn_dim/6/models/best_checkpoint")
 
 
             # Set policy to evaluation mode
@@ -529,8 +529,8 @@ def get_attention_data(
             d_action,
         )
         # learner.load(dirs["models"] / "best_model")
-        # learner.load("/home/sophie/scalable-salp-locomotion/src/experiments/results/salp_navigate_varying_salp_curr/gcn_dim/6_stage_4/models/best_checkpoint")
-        learner.load("/home/sophie/scalable-salp-locomotion/src/experiments/results/salp_navigate_varying_baseline/gcn_dim/6/models/best_checkpoint")
+        learner.load("/home/sophie/scalable-salp-locomotion/src/experiments/results/salp_navigate_varying_salp_curr/gcn_dim/6_stage_4/models/best_checkpoint")
+        # learner.load("/home/sophie/scalable-salp-locomotion/src/experiments/results/salp_navigate_varying_baseline/gcn_dim/6/models/best_checkpoint")
 
 
         # Set policy to evaluation mode
